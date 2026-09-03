@@ -1,9 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { CONFIG } from './config';
 
-const DATA_FILE = path.resolve(__dirname, '../../data/db.json');
-const BACKUP_DIR = path.resolve(__dirname, '../../data/backups');
+const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const baseDataDir = isVercel ? path.join(os.tmpdir(), 'pulso_data') : path.resolve(__dirname, '../../data');
+const DATA_FILE = path.join(baseDataDir, 'db.json');
+const BACKUP_DIR = path.join(baseDataDir, 'backups');
 
 export function backupDatabase(): { ok: boolean; file?: string; error?: string } {
   try {

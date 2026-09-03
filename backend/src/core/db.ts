@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { CONFIG } from './config';
 
 export interface DatabaseSchema {
@@ -14,12 +15,17 @@ export interface DatabaseSchema {
   settings: Record<string, any>;
 }
 
-const DB_FILE = path.resolve(__dirname, '../../data/db.json');
+const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const dataDir = isVercel ? path.join(os.tmpdir(), 'pulso_data') : path.resolve(__dirname, '../../data');
+const DB_FILE = path.join(dataDir, 'db.json');
 
-// Ensure data directory exists
-const dataDir = path.dirname(DB_FILE);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Ensure data directory exists safely without crashing serverless
+try {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[PulsoSocial] Aviso: Não foi possível criar pasta dataDir em disco:', err);
 }
 
 let store: DatabaseSchema = {

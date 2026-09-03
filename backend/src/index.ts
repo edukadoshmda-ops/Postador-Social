@@ -28,12 +28,17 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Static uploads serving
 app.use('/uploads', express.static(CONFIG.UPLOADS_DIR));
 
-// Init SQLite DB
-initDatabase();
+// Init SQLite DB safely
+try {
+  initDatabase();
+} catch (err) {
+  console.warn('[PulsoSocial] Aviso initDatabase:', err);
+}
 
-// Init scheduler de campanhas recorrentes (checa a cada 60s)
-import { initScheduler } from './core/scheduler';
-initScheduler();
+// Init scheduler de campanhas recorrentes (apenas em servidor persistente, não serverless)
+if (!process.env.VERCEL) {
+  import('./core/scheduler').then(m => m.initScheduler()).catch(() => {});
+}
 
 // API Routes
 app.use('/api/campaigns', campaignsRouter);
