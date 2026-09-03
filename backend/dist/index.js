@@ -36,7 +36,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.app = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const config_1 = require("./core/config");
@@ -53,7 +52,6 @@ const notifications_1 = require("./routes/notifications");
 const auth_1 = require("./routes/auth");
 require("./core/supabaseClient");
 const app = (0, express_1.default)();
-exports.app = app;
 app.use((0, cors_1.default)({
     origin: true,
     credentials: true,
@@ -89,8 +87,11 @@ app.get('/api/health', (req, res) => {
 });
 // Error handling
 app.use(errorHandler_1.errorHandler);
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : config_1.CONFIG.PORT || 3001;
-app.listen(PORT, () => {
-    console.log(`🚀 Pulso Social Backend running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+    const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : config_1.CONFIG.PORT || 3001;
+    app.listen(PORT, () => {
+        console.log(`🚀 Pulso Social Backend running on port ${PORT}`);
+    });
+}
+module.exports = app;
 exports.default = app;

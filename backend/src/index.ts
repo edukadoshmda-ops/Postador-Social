@@ -59,10 +59,12 @@ app.get('/api/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : CONFIG.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`🚀 Pulso Social Backend running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : CONFIG.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`🚀 Pulso Social Backend running on port ${PORT}`);
+  });
+}
 
+module.exports = app;
 export default app;
-export { app };

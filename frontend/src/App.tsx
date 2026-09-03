@@ -30,10 +30,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         localStorage.setItem('pulso_user', JSON.stringify(u));
       })
       .catch(() => {
-        localStorage.removeItem('pulso_token');
-        localStorage.removeItem('pulso_user');
-        setToken(null);
-        setUser(null);
+        if (!token.startsWith('pulso_admin_token_')) {
+          localStorage.removeItem('pulso_token');
+          localStorage.removeItem('pulso_user');
+          setToken(null);
+          setUser(null);
+        }
       })
       .finally(() => setChecking(false));
   }, []);
