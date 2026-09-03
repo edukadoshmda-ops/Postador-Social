@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Pulso Social Studio PRO</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #0b1329;
+    color: #f1f5f9;
+    margin: 0;
+    padding: 16px;
+    width: 330px;
+    box-sizing: border-box;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .badge-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    color: #fff;
+  }
+  h1 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge-pro {
+    font-size: 9px;
+    font-weight: 800;
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    padding: 1px 5px;
+    border-radius: 9999px;
+  }
+  p {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0 0 12px;
+    line-height: 1.4;
+  }
+  .btn {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #4338ca, #4f46e5);
+  }
+  .btn-secondary {
+    background: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid #334155;
+  }
+  .btn-secondary:hover {
+    background: #334155;
+    color: #fff;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .hint {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 10px;
+    line-height: 1.4;
+    word-break: break-word;
+    background: #131c31;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #1e293b;
+  }
+  .footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #1e293b;
+    font-size: 10px;
+    color: #64748b;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge-icon">⚡</div>
+    <div>
+      <h1>Pulso Social <span class="badge-pro">PRO</span></h1>
+      <p style="margin:0;font-size:10px;color:#94a3b8;">Extensão Oficial v5.80.0</p>
+    </div>
+  </div>
+
+  <p>Sincronize automaticamente todos os grupos do Facebook que você participa com o painel local.</p>
+
+  <button class="btn btn-primary" id="runCampaign" style="background: linear-gradient(135deg, #059669, #10b981); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); font-size: 13px; padding: 13px; font-weight: 700;">
+    <span>🚀 Disparar Postagem nos Meus Grupos (100% Automático)</span>
+  </button>
+
+  <button class="btn btn-secondary" id="stopCampaign" style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);">
+    <span>🛑 PARAR TUDO AGORA (Cancelar Disparos)</span>
+  </button>
+
+  <button class="btn btn-secondary" id="sync">
+    <span>⚡ Sincronizar Meus Grupos do Facebook</span>
+  </button>
+
+  <div style="margin-bottom: 10px; background: #131c31; border: 1px solid #1e293b; padding: 10px; border-radius: 10px;">
+    <label style="font-size: 11px; font-weight: 600; color: #94a3b8; display: block; margin-bottom: 5px;">
+      🌐 Endereço do Painel (Nuvem / Vercel ou Local):
+    </label>
+    <input id="apiInput" type="text" placeholder="https://seu-app.vercel.app" style="width: 100%; box-sizing: border-box; background: #0b1329; border: 1px solid #334155; border-radius: 6px; padding: 6px 8px; font-size: 11px; color: #fff; margin-bottom: 6px;" />
+    <div style="display: flex; gap: 6px;">
+      <button id="btnSaveApi" style="flex: 1; padding: 5px; font-size: 10px; font-weight: 600; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Salvar URL</button>
+      <button id="btnResetApi" style="padding: 5px 8px; font-size: 10px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 6px; cursor: pointer;">Localhost</button>
+    </div>
+  </div>
+
+  <button class="btn btn-secondary" id="openPanel">
+    <span>🖥️ Abrir Painel Oficial (Nuvem / Local)</span>
+  </button>
+
+  <div class="hint" id="status">Pronto para ações. Escolha uma opção acima.</div>
+
+  <div class="footer">
+    Versão 5.80.0 • Arquitetura Cérebro
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

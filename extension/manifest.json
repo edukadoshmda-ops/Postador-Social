@@ -1,0 +1,77 @@
+{
+  "manifest_version": 3,
+  "name": "Pulso Social: Postador & Engajador PRO",
+  "version": "5.80.0",
+  "description": "Automação de postagens e engajamento em grupos do Facebook e Instagram com Spintax e Calibrador Anti-Ban",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Pulso Social Studio PRO"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.facebook.com/*", "https://*.instagram.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*",
+        "http://localhost:5174/*",
+        "http://127.0.0.1:5174/*",
+        "https://*.vercel.app/*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["bridge.js"],
+      "matches": [
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*",
+        "http://localhost:5174/*",
+        "http://127.0.0.1:5174/*",
+        "https://*.vercel.app/*",
+        "https://*.facebook.com/*"
+      ]
+    }
+  ],
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "cookies",
+    "alarms",
+    "unlimitedStorage",
+    "debugger"
+  ],
+  "host_permissions": [
+    "https://*.facebook.com/*",
+    "https://*.instagram.com/*",
+    "https://*.vercel.app/*",
+    "http://localhost:3001/*",
+    "http://localhost:5173/*",
+    "http://localhost:5174/*",
+    "http://127.0.0.1:3001/*",
+    "http://127.0.0.1:5173/*",
+    "http://127.0.0.1:5174/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://*.vercel.app/*",
+      "http://localhost:5173/*",
+      "http://127.0.0.1:5173/*",
+      "http://localhost:5174/*",
+      "http://127.0.0.1:5174/*",
+      "http://localhost:3001/*",
+      "http://127.0.0.1:3001/*"
+    ],
+    "accepts_tls_channel_id": false
+  }
+}

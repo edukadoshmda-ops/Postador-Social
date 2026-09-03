@@ -1,0 +1,13 @@
+node_modules/
+*/node_modules/
+.env
+*/.env
+dist/
+*/dist/
+*.sqlite
+*.sqlite-journal
+data/
+uploads/
+.DS_Store
+Thumbs.db
+.vercel
