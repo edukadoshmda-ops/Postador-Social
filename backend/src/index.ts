@@ -54,11 +54,15 @@ const routers = [
 ];
 
 for (const r of routers) {
+  app.use(`/backend/${r.path}`, r.router);
   app.use(`/api/${r.path}`, r.router);
   app.use(`/${r.path}`, r.router);
 }
 
 // Health check
+app.get('/backend/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString(), version: '5.80.0' });
+});
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString(), version: '5.80.0' });
 });
