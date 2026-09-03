@@ -21,39 +21,40 @@ async function getApiBase() {
       return data.pulso_api_base.trim().replace(/\/+$/, '');
     }
   } catch {}
-  return 'https://postador-two.vercel.app';
+  return 'http://localhost:3001';
 }
 
-// Inicializa o input com a URL salva ou padrão Vercel
+// Inicializa o input com padrão Localhost 3001
 chrome.storage.local.get('pulso_api_base', (res) => {
   if (apiInput) {
-    apiInput.value = res.pulso_api_base || 'https://postador-two.vercel.app';
+    apiInput.value = res.pulso_api_base || 'http://localhost:3001';
   }
 });
 
 btnSaveApi?.addEventListener('click', async () => {
-  const val = (apiInput?.value || '').trim().replace(/\/+$/, '');
+  const val = (apiInput?.value || '').trim().replace(/\/+$/, '') || 'http://localhost:3001';
   await chrome.storage.local.set({ pulso_api_base: val });
-  setMsg(val ? `URL configurada: ${val}` : 'Usando padrão local.', true);
+  setMsg(`Conexão configurada: ${val}`, true);
 });
 
 btnResetApi?.addEventListener('click', async () => {
   if (apiInput) apiInput.value = 'http://localhost:3001';
   await chrome.storage.local.set({ pulso_api_base: 'http://localhost:3001' });
-  setMsg('Restaurado para Localhost.', true);
+  setMsg('Padrão restaurado: http://localhost:3001', true);
 });
 
 btnOpenJoins?.addEventListener('click', () => {
   chrome.tabs.create({ url: 'https://www.facebook.com/groups/joins', active: true });
 });
 
-btnOpenPanel?.addEventListener('click', async () => {
-  const base = await getApiBase();
-  let targetUrl = base;
-  if (targetUrl.includes(':3001')) {
-    targetUrl = targetUrl.replace(':3001', ':5174');
-  }
-  chrome.tabs.create({ url: targetUrl, active: true });
+// Botão para abrir o painel na nuvem (Vercel)
+document.getElementById('openVercelPanel')?.addEventListener('click', () => {
+  chrome.tabs.create({ url: 'https://postador-two.vercel.app', active: true });
+});
+
+// Botão para abrir o painel local (5174)
+document.getElementById('openLocalPanel')?.addEventListener('click', () => {
+  chrome.tabs.create({ url: 'http://localhost:5174', active: true });
 });
 
 btnSync?.addEventListener('click', async () => {

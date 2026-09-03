@@ -135,20 +135,25 @@
     <span>⚡ Sincronizar Meus Grupos do Facebook</span>
   </button>
 
-  <div style="margin-bottom: 10px; background: #131c31; border: 1px solid #1e293b; padding: 10px; border-radius: 10px;">
-    <label style="font-size: 11px; font-weight: 600; color: #94a3b8; display: block; margin-bottom: 5px;">
-      🌐 Endereço do Painel (Nuvem / Vercel ou Local):
-    </label>
-    <input id="apiInput" type="text" placeholder="https://seu-app.vercel.app" style="width: 100%; box-sizing: border-box; background: #0b1329; border: 1px solid #334155; border-radius: 6px; padding: 6px 8px; font-size: 11px; color: #fff; margin-bottom: 6px;" />
-    <div style="display: flex; gap: 6px;">
-      <button id="btnSaveApi" style="flex: 1; padding: 5px; font-size: 10px; font-weight: 600; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Salvar URL</button>
-      <button id="btnResetApi" style="padding: 5px 8px; font-size: 10px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 6px; cursor: pointer;">Localhost</button>
-    </div>
+  <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+    <button class="btn btn-secondary" id="openVercelPanel" style="flex: 1.2; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; font-weight: 700; border: none; padding: 10px; font-size: 11px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35); cursor: pointer;">
+      <span>☁️ Abrir Painel na Vercel</span>
+    </button>
+    <button class="btn btn-secondary" id="openLocalPanel" style="flex: 1; background: #1e293b; color: #cbd5e1; font-weight: 600; border: 1px solid #334155; padding: 10px; font-size: 11px; cursor: pointer;">
+      <span>🖥️ Painel Local</span>
+    </button>
   </div>
 
-  <button class="btn btn-secondary" id="openPanel">
-    <span>🖥️ Abrir Painel Oficial (Nuvem / Local)</span>
-  </button>
+  <div style="margin-bottom: 10px; background: #131c31; border: 1px solid #1e293b; padding: 10px; border-radius: 10px;">
+    <label style="font-size: 11px; font-weight: 600; color: #94a3b8; display: block; margin-bottom: 5px;">
+      ⚡ Conexão da Extensão (Padrão: Localhost:3001):
+    </label>
+    <input id="apiInput" type="text" placeholder="http://localhost:3001" style="width: 100%; box-sizing: border-box; background: #0b1329; border: 1px solid #334155; border-radius: 6px; padding: 6px 8px; font-size: 11px; color: #fff; margin-bottom: 6px;" />
+    <div style="display: flex; gap: 6px;">
+      <button id="btnSaveApi" style="flex: 1; padding: 5px; font-size: 10px; font-weight: 600; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Salvar URL</button>
+      <button id="btnResetApi" style="padding: 5px 8px; font-size: 10px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 6px; cursor: pointer;">Padrão 3001</button>
+    </div>
+  </div>
 
   <div class="hint" id="status">Pronto para ações. Escolha uma opção acima.</div>
 
