@@ -2,8 +2,7 @@ node_modules/
 */node_modules/
 .env
 */.env
-dist/
-*/dist/
+frontend/dist/
 *.sqlite
 *.sqlite-journal
 data/
