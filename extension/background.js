@@ -6,7 +6,7 @@ async function getApiBase() {
       return data.pulso_api_base.trim().replace(/\/+$/, '');
     }
   } catch {}
-  return 'http://localhost:3001';
+  return 'https://postador-two.vercel.app';
 }
 
 async function captureFacebookSession() {

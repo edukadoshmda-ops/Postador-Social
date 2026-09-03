@@ -21,13 +21,13 @@ async function getApiBase() {
       return data.pulso_api_base.trim().replace(/\/+$/, '');
     }
   } catch {}
-  return 'http://localhost:3001';
+  return 'https://postador-two.vercel.app';
 }
 
-// Inicializa o input com a URL salva
+// Inicializa o input com a URL salva ou padrão Vercel
 chrome.storage.local.get('pulso_api_base', (res) => {
-  if (apiInput && res.pulso_api_base) {
-    apiInput.value = res.pulso_api_base;
+  if (apiInput) {
+    apiInput.value = res.pulso_api_base || 'https://postador-two.vercel.app';
   }
 });
 
