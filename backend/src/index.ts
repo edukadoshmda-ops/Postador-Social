@@ -40,31 +40,39 @@ if (!process.env.VERCEL) {
   import('./core/scheduler').then(m => m.initScheduler()).catch(() => {});
 }
 
-// API Routes
-app.use('/api/campaigns', campaignsRouter);
-app.use('/api/accounts', accountsRouter);
-app.use('/api/groups', groupsRouter);
-app.use('/api/library', libraryRouter);
-app.use('/api/warmer', warmerRouter);
-app.use('/api/stats', statsRouter);
-app.use('/api/upload', uploadRouter);
-app.use('/api/notifications', notificationsRouter);
-app.use('/api/auth', authRouter);
+// API Routes (suporta com e sem /api)
+const routers = [
+  { path: 'campaigns', router: campaignsRouter },
+  { path: 'accounts', router: accountsRouter },
+  { path: 'groups', router: groupsRouter },
+  { path: 'library', router: libraryRouter },
+  { path: 'warmer', router: warmerRouter },
+  { path: 'stats', router: statsRouter },
+  { path: 'upload', router: uploadRouter },
+  { path: 'notifications', router: notificationsRouter },
+  { path: 'auth', router: authRouter },
+];
+
+for (const r of routers) {
+  app.use(`/api/${r.path}`, r.router);
+  app.use(`/${r.path}`, r.router);
+}
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString(), version: '5.78.9' });
+  res.json({ status: 'ok', time: new Date().toISOString(), version: '5.80.0' });
+});
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString(), version: '5.80.0' });
 });
 
 // Error handling
 app.use(errorHandler);
 
-if (!process.env.VERCEL) {
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : CONFIG.PORT || 3001;
-  app.listen(PORT, () => {
-    console.log(`🚀 Pulso Social Backend running on port ${PORT}`);
-  });
-}
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : CONFIG.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`🚀 Pulso Social Backend running on port ${PORT}`);
+});
 
 module.exports = app;
 export default app;
