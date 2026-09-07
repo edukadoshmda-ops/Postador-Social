@@ -632,7 +632,51 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
+// =========================================================
+// MONITORAMENTO AUTOMÁTICO DE PUBLICAÇÕES NO FACEBOOK
+// Calibra automaticamente quando o usuário publica manualmente
+// =========================================================
+(function setupFacebookPostMonitor() {
+  let pendingComposerType = 'text';
+
+  // Monitora digitação e anexos no modal de publicação
+  document.addEventListener('input', () => {
+    try {
+      const dialog = document.querySelector('div[role="dialog"]') || document.querySelector('div[aria-label*="Criar post" i]') || document;
+      const hasPhoto = !!dialog.querySelector('img[src*="blob:"], img[src*="scontent"], div[aria-label*="foto" i], div[aria-label*="Foto" i], input[type="file"][accept*="image"]');
+      const hasVideo = !!dialog.querySelector('video, div[aria-label*="vídeo" i], div[aria-label*="Vídeo" i], input[type="file"][accept*="video"]');
+      if (hasVideo) pendingComposerType = 'video';
+      else if (hasPhoto) pendingComposerType = 'photo';
+      else pendingComposerType = 'text';
+    } catch {}
+  }, true);
+
+  // Monitora clique no botão de publicar
+  document.addEventListener('click', (e) => {
+    try {
+      const target = e.target;
+      if (!target) return;
+      const btn = target.closest('[aria-label*="Publicar" i], [aria-label*="Post" i], [aria-label*="Concluir" i], button, div[role="button"]');
+      if (!btn) return;
+      const label = (btn.innerText || btn.getAttribute('aria-label') || '').toLowerCase().trim();
+      if (label === 'publicar' || label === 'post' || label === 'postar' || label.includes('publicar') || label.includes('postar')) {
+        const format = pendingComposerType || 'text';
+        console.log('[PulsoSocial] Publicação manual no Facebook detectada! Formato:', format);
+        chrome.runtime.sendMessage({
+          type: 'FACEBOOK_MANUAL_POST_SUBMITTED',
+          format,
+          url: location.href,
+          timestamp: Date.now()
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('[PulsoSocial] Erro ao monitorar post manual:', err);
+    }
+  }, true);
+})();
+
 try {
   chrome.runtime.sendMessage({ type: 'CONTENT_READY', url: location.href });
 } catch {}
+
 

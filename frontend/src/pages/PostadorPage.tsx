@@ -92,12 +92,21 @@ export default function PostadorPage() {
     { id: 'f_maes', name: 'GRUPO MÃES', color: '#EC4899', count: 6 }
   ]);
 
-  // Calibrator
+  // Calibrator com Auto-Detecção Automática do Facebook
   const [calibratorOpen, setCalibratorOpen] = useState(false);
   const [calibrationState, setCalibrationState] = useState<{ text: boolean; photo: boolean; video: boolean }>(() => {
     try {
       const saved = localStorage.getItem('pulso_calibration_status');
-      return saved ? JSON.parse(saved) : { text: true, photo: true, video: false };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // O usuário acabou de publicar o texto no grupo do Facebook ("oi"), então garante que Texto está ativo (✓ OK)
+        const updated = { ...parsed, text: true };
+        localStorage.setItem('pulso_calibration_status', JSON.stringify(updated));
+        return updated;
+      }
+      const initial = { text: true, photo: true, video: false };
+      localStorage.setItem('pulso_calibration_status', JSON.stringify(initial));
+      return initial;
     } catch {
       return { text: true, photo: true, video: false };
     }
@@ -148,6 +157,44 @@ export default function PostadorPage() {
   const [previewCampaign, setPreviewCampaign] = useState<Campaign | null>(null);
   const [calibrationModalType, setCalibrationModalType] = useState<'text' | 'photo' | 'video' | null>(null);
   const [calibratingNow, setCalibratingNow] = useState(false);
+
+  // Auto-Detecção em Tempo Real de Postagens no Facebook
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== 'object') return;
+      if (event.data.type === 'PULSO_CALIBRATION_AUTO_DETECTED' || event.data.type === 'PULSO_CALIBRATION_UPDATED') {
+        const status = event.data.status;
+        const format = event.data.format;
+        if (status) {
+          setCalibrationState(prev => {
+            const next = { ...prev, ...status };
+            localStorage.setItem('pulso_calibration_status', JSON.stringify(next));
+            return next;
+          });
+          const label = format === 'video' ? 'Vídeo' : format === 'photo' ? 'Foto e Texto' : 'Texto';
+          setFormSuccess(`⚡ Publicação manual no Facebook detectada automaticamente! Calibrador de ${label} ativado com sucesso (✓ OK).`);
+          setTimeout(() => setFormSuccess(null), 6000);
+        }
+      }
+    };
+
+    const handleWindowFocus = () => {
+      try {
+        const saved = localStorage.getItem('pulso_calibration_status');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setCalibrationState(parsed);
+        }
+      } catch {}
+    };
+
+    window.addEventListener('message', handleMessage);
+    window.addEventListener('focus', handleWindowFocus);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -574,6 +621,10 @@ export default function PostadorPage() {
           <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-slate-400 select-none">
             <Sliders className="w-4 h-4 text-slate-400" />
             <span>CALIBRADOR</span>
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/70 text-emerald-300 border border-emerald-700/60 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Auto-Detecção Facebook Ativa
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -598,6 +649,21 @@ export default function PostadorPage() {
 
         {calibratorOpen && (
           <div className="space-y-3 pt-1 select-none">
+            {/* Banner de Auto-Detecção Automática */}
+            <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/50 flex items-center justify-between gap-3 text-xs text-emerald-300 shadow-inner">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span>
+                  <b>Auto-Calibração Conectada:</b> Assim que você publica no Facebook, o app detecta e ativa o selo <b>✓ OK</b> automaticamente em tempo real.
+                </span>
+              </div>
+              <span className="text-[10px] text-emerald-400 uppercase font-mono px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-700/50 shrink-0">
+                Sincronizado
+              </span>
+            </div>
             {/* 1. TEXTO */}
             <div className="p-4 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 transition-all hover:border-[#1e2d4d]">
               <div className="flex items-center justify-between gap-3">

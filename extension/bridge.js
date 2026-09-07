@@ -136,6 +136,19 @@
     }
   });
 
+  // Escuta atualizações vindas do background da extensão
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg && msg.type === 'PULSO_CALIBRATION_UPDATED') {
+        window.postMessage({
+          type: 'PULSO_CALIBRATION_AUTO_DETECTED',
+          status: msg.status,
+          format: msg.format
+        }, '*');
+      }
+    });
+  }
+
   // Avisa ao frontend que o bridge está carregado
   window.postMessage({ type: 'PULSO_BRIDGE_READY', version: '5.80.0' }, '*');
 })();

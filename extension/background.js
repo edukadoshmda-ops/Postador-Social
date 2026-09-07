@@ -499,6 +499,42 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     executeFullCampaign(msg, sendResponse);
     return true; // async
   }
+  if (msg.type === 'FACEBOOK_MANUAL_POST_SUBMITTED') {
+    (async () => {
+      try {
+        const stored = await chrome.storage.local.get('pulso_calibration_status');
+        const status = stored.pulso_calibration_status || { text: true, photo: true, video: false };
+        if (msg.format === 'text') status.text = true;
+        if (msg.format === 'photo') status.photo = true;
+        if (msg.format === 'video') status.video = true;
+        await chrome.storage.local.set({ pulso_calibration_status: status });
+
+        // Notifica todas as abas abertas da aplicação
+        const allTabs = await chrome.tabs.query({});
+        for (const t of allTabs) {
+          if (t.id && t.url && (t.url.includes('5173') || t.url.includes('5174') || t.url.includes('vercel.app'))) {
+            chrome.tabs.sendMessage(t.id, {
+              type: 'PULSO_CALIBRATION_UPDATED',
+              status,
+              format: msg.format
+            }).catch(() => {});
+          }
+        }
+
+        // Sincroniza com o backend se disponível
+        const apiBase = await getApiBase();
+        fetch(`${apiBase}/api/accounts/calibration/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(status)
+        }).catch(() => {});
+      } catch (err) {
+        console.warn('[PulsoSocial] Erro ao processar calibração:', err);
+      }
+    })();
+    sendResponse({ ok: true });
+    return true; // async
+  }
   if (msg.type === 'PING') {
     sendResponse({ ok: true, version: '5.80.0' });
     return false;
