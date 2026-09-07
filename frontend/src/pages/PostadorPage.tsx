@@ -599,26 +599,36 @@ export default function PostadorPage() {
         {calibratorOpen && (
           <div className="space-y-3 pt-1 select-none">
             {/* 1. TEXTO */}
-            <div className="p-4 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 transition-all">
+            <div className="p-4 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 transition-all hover:border-[#1e2d4d]">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
                   <span className="font-bold text-sm text-white">Texto</span>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCalibration('text')}
+                    title="Clique para marcar como Calibrado ou Falta calibrar"
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
                       calibrationState.text
                         ? 'bg-[#064e3b]/80 text-[#34d399] border border-[#059669]/60'
-                        : 'bg-[#1b2438] text-slate-400 border border-slate-700'
+                        : 'bg-[#1b2438] text-slate-400 border border-slate-700 hover:text-white hover:border-slate-500'
                     }`}
                   >
-                    {calibrationState.text ? '✓ OK' : 'Falta calibrar'}
-                  </span>
+                    {calibrationState.text ? '✓ OK' : 'Falta calibrar (Clique p/ Ativar)'}
+                  </button>
                 </div>
 
                 {/* Botão [ ⚡ Calibrar Agora ] */}
                 <button
                   type="button"
-                  onClick={() => setCalibrationModalType('text')}
+                  onClick={() => {
+                    if (!calibrationState.text) {
+                      // Se já postou, ativa direto ou abre o modal
+                      setCalibrationModalType('text');
+                    } else {
+                      handleToggleCalibration('text');
+                    }
+                  }}
                   className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                     calibrationState.text
                       ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300 hover:bg-emerald-900/50'
@@ -628,7 +638,7 @@ export default function PostadorPage() {
                   {calibrationState.text ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Calibrado</span>
+                      <span>Calibrado ✓</span>
                     </>
                   ) : (
                     <>
@@ -639,31 +649,40 @@ export default function PostadorPage() {
                 </button>
               </div>
               <p className="text-xs text-slate-400 pl-6 sm:pl-6.5 leading-relaxed">
-                Para ativar texto, faça 1 publicação manual SÓ COM TEXTO em qualquer grupo.
+                Para ativar texto, faça 1 publicação manual SÓ COM TEXTO em qualquer grupo e clique no botão acima para confirmar.
               </p>
             </div>
 
             {/* 2. FOTO */}
-            <div className="p-4 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 transition-all">
+            <div className="p-4 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 transition-all hover:border-[#1e2d4d]">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <ImageIcon className="w-4 h-4 text-blue-400 shrink-0" />
                   <span className="font-bold text-sm text-white">Foto</span>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCalibration('photo')}
+                    title="Clique para marcar como Calibrado ou Falta calibrar"
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
                       calibrationState.photo
                         ? 'bg-[#064e3b]/80 text-[#34d399] border border-[#059669]/60'
-                        : 'bg-[#1b2438] text-slate-400 border border-slate-700'
+                        : 'bg-[#1b2438] text-slate-400 border border-slate-700 hover:text-white hover:border-slate-500'
                     }`}
                   >
-                    {calibrationState.photo ? '✓ OK' : 'Falta calibrar'}
-                  </span>
+                    {calibrationState.photo ? '✓ OK' : 'Falta calibrar (Clique p/ Ativar)'}
+                  </button>
                 </div>
 
                 {/* Botão [ ⚡ Calibrar Agora ] */}
                 <button
                   type="button"
-                  onClick={() => setCalibrationModalType('photo')}
+                  onClick={() => {
+                    if (!calibrationState.photo) {
+                      setCalibrationModalType('photo');
+                    } else {
+                      handleToggleCalibration('photo');
+                    }
+                  }}
                   className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                     calibrationState.photo
                       ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300 hover:bg-emerald-900/50'
@@ -673,7 +692,7 @@ export default function PostadorPage() {
                   {calibrationState.photo ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Calibrado</span>
+                      <span>Calibrado ✓</span>
                     </>
                   ) : (
                     <>
@@ -684,31 +703,40 @@ export default function PostadorPage() {
                 </button>
               </div>
               <p className="text-xs text-slate-400 pl-6 sm:pl-6.5 leading-relaxed">
-                Para postar imagem, faça 1 publicação manual COM uma foto e um texto.
+                Para postar imagem, faça 1 publicação manual COM uma foto e um texto e confirme a calibração.
               </p>
             </div>
 
             {/* 3. VÍDEO */}
-            <div className="p-4 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 transition-all">
+            <div className="p-4 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 transition-all hover:border-[#1e2d4d]">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Film className="w-4 h-4 text-purple-400 shrink-0" />
                   <span className="font-bold text-sm text-white">Vídeo</span>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCalibration('video')}
+                    title="Clique para marcar como Calibrado ou Falta calibrar"
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
                       calibrationState.video
                         ? 'bg-[#064e3b]/80 text-[#34d399] border border-[#059669]/60'
-                        : 'bg-[#1b2438] text-slate-400 border border-slate-700'
+                        : 'bg-[#1b2438] text-slate-400 border border-slate-700 hover:text-white hover:border-slate-500'
                     }`}
                   >
-                    {calibrationState.video ? '✓ OK' : 'Falta calibrar'}
-                  </span>
+                    {calibrationState.video ? '✓ OK' : 'Falta calibrar (Clique p/ Ativar)'}
+                  </button>
                 </div>
 
                 {/* Botão [ ⚡ Calibrar Agora ] */}
                 <button
                   type="button"
-                  onClick={() => setCalibrationModalType('video')}
+                  onClick={() => {
+                    if (!calibrationState.video) {
+                      setCalibrationModalType('video');
+                    } else {
+                      handleToggleCalibration('video');
+                    }
+                  }}
                   className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                     calibrationState.video
                       ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300 hover:bg-emerald-900/50'
@@ -718,7 +746,7 @@ export default function PostadorPage() {
                   {calibrationState.video ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Calibrado</span>
+                      <span>Calibrado ✓</span>
                     </>
                   ) : (
                     <>
@@ -729,7 +757,7 @@ export default function PostadorPage() {
                 </button>
               </div>
               <p className="text-xs text-slate-400 pl-6 sm:pl-6.5 leading-relaxed">
-                Vídeo é experimental. Faça 1 publicação manual apenas COM um vídeo.
+                Vídeo é experimental. Faça 1 publicação manual apenas COM um vídeo e confirme a calibração.
               </p>
             </div>
           </div>
@@ -1797,51 +1825,51 @@ export default function PostadorPage() {
 
             {/* Ações */}
             <div className="space-y-2.5 pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Botão de Destaque: Já fiz a postagem! */}
+              <button
+                type="button"
+                onClick={() => handleConfirmCalibration(calibrationModalType)}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-sm font-bold text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-950/50 hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+                <span>✅ Já fiz a postagem no Facebook! Ativar Calibração Agora</span>
+              </button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => window.open('https://www.facebook.com/groups/feed/', '_blank')}
                   className="w-full py-2.5 px-3 rounded-xl bg-[#1e293b] hover:bg-[#28364e] border border-slate-700 text-xs font-semibold text-slate-200 flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
                   <ExternalLink className="w-4 h-4 text-indigo-400" />
-                  <span>1. Abrir Facebook</span>
+                  <span>1. Abrir Facebook p/ Postar</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleConfirmCalibration(calibrationModalType)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-[#5054d4] hover:bg-[#4347c4] text-xs font-bold text-white flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md"
+                  onClick={() => {
+                    setCalibratingNow(true);
+                    setTimeout(() => {
+                      setCalibratingNow(false);
+                      handleConfirmCalibration(calibrationModalType);
+                    }, 1000);
+                  }}
+                  disabled={calibratingNow}
+                  className="w-full py-2.5 px-3 rounded-xl bg-[#151c33] hover:bg-[#1e2746] border border-indigo-500/50 text-xs font-semibold text-indigo-200 flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>2. Confirmar Postagem</span>
+                  {calibratingNow ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                      <span>Sincronizando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+                      <span>Calibração Rápida (1-Clique)</span>
+                    </>
+                  )}
                 </button>
               </div>
-
-              {/* Botão de 1-Clique Calibração Automática */}
-              <button
-                type="button"
-                onClick={() => {
-                  setCalibratingNow(true);
-                  setTimeout(() => {
-                    setCalibratingNow(false);
-                    handleConfirmCalibration(calibrationModalType);
-                  }, 1200);
-                }}
-                disabled={calibratingNow}
-                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md disabled:opacity-50"
-              >
-                {calibratingNow ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Testando seletores e calibrando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 fill-white" />
-                    <span>Calibração Automática Rápida (1-Clique)</span>
-                  </>
-                )}
-              </button>
             </div>
           </div>
         </div>
