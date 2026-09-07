@@ -40,10 +40,10 @@ export default function TutorialsPage() {
           <PlayCircle className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
             Tutoriais em Vídeo & Treinamentos
           </h1>
-          <p className="text-xs text-slate-400">Aprenda a extrair o máximo de resultados do Pulso Social Studio</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Aprenda a extrair o máximo de resultados do Pulso Social Studio</p>
         </div>
       </div>
 
@@ -53,10 +53,10 @@ export default function TutorialsPage() {
           return (
             <div
               key={idx}
-              className="bg-[#0f172a] border border-[#1e293b] hover:border-indigo-500/40 rounded-2xl p-5 space-y-3.5 shadow-lg flex flex-col justify-between transition-all"
+              className="bg-white dark:bg-[#0f172a] border border-slate-200/80 dark:border-[#1e293b] hover:border-indigo-500/40 rounded-2xl p-5 space-y-3.5 shadow-xs dark:shadow-lg flex flex-col justify-between transition-all"
             >
               <div className="space-y-2.5">
-                <div className="aspect-video rounded-xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900 border border-[#1e293b] flex items-center justify-center relative overflow-hidden group cursor-pointer">
+                <div className="aspect-video rounded-xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900 border border-slate-200 dark:border-[#1e293b] flex items-center justify-center relative overflow-hidden group cursor-pointer">
                   <div className="w-12 h-12 rounded-full bg-indigo-600 group-hover:bg-indigo-500 flex items-center justify-center text-white shadow-xl group-hover:scale-110 transition-transform">
                     <PlayCircle className="w-6 h-6" />
                   </div>
@@ -66,12 +66,12 @@ export default function TutorialsPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                     {tut.category}
                   </span>
                 </div>
-                <h3 className="font-bold text-sm text-white">{tut.title}</h3>
-                <p className="text-xs text-slate-400">{tut.description}</p>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white">{tut.title}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{tut.description}</p>
               </div>
             </div>
           );

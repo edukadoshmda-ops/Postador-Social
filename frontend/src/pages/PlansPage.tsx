@@ -56,14 +56,14 @@ export default function PlansPage() {
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
       {/* Header */}
       <div className="text-center space-y-3 pt-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold">
           <Crown className="w-4 h-4" />
           <span>Planos & Licenças PRO</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 dark:text-white tracking-tight">
           Escale suas postagens sem limites
         </h1>
-        <p className="text-sm text-slate-400 max-w-xl mx-auto">
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
           Escolha o plano ideal para suas campanhas e potencialize seu alcance no Facebook e Instagram.
         </p>
       </div>
@@ -75,8 +75,8 @@ export default function PlansPage() {
             key={idx}
             className={`rounded-2xl p-7 flex flex-col justify-between border relative transition-all ${
               plan.popular
-                ? 'bg-gradient-to-b from-[#1b223c] to-[#0f172a] border-indigo-500 shadow-2xl shadow-indigo-500/20 md:-translate-y-2'
-                : 'bg-[#0f172a] border-[#1e293b] hover:border-slate-600'
+                ? 'bg-white dark:bg-gradient-to-b dark:from-[#1b223c] dark:to-[#0f172a] border-indigo-500 shadow-xl dark:shadow-2xl shadow-indigo-500/10 dark:shadow-indigo-500/20 md:-translate-y-2 ring-2 ring-indigo-500/20'
+                : 'bg-white dark:bg-[#0f172a] border-slate-200/80 dark:border-[#1e293b] hover:border-slate-300 dark:hover:border-slate-600 shadow-xs dark:shadow-lg'
             }`}
           >
             {plan.popular && (
@@ -87,19 +87,19 @@ export default function PlansPage() {
 
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                <p className="text-xs text-slate-400 mt-1">{plan.description}</p>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">{plan.name}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{plan.description}</p>
               </div>
 
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-4xl font-extrabold text-white">{plan.price}</span>
-                <span className="text-xs text-slate-400">{plan.period}</span>
+                <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">{plan.price}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{plan.period}</span>
               </div>
 
-              <div className="space-y-2.5 pt-4 border-t border-[#1e293b]">
+              <div className="space-y-2.5 pt-4 border-t border-slate-200/80 dark:border-[#1e293b]">
                 {plan.features.map((feat, fIdx) => (
-                  <div key={fIdx} className="flex items-center gap-2.5 text-xs text-slate-300">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div key={fIdx} className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                     <span>{feat}</span>
                   </div>
                 ))}
@@ -107,10 +107,10 @@ export default function PlansPage() {
             </div>
 
             <button
-              className={`w-full mt-8 py-3 rounded-xl font-bold text-xs shadow-lg transition-all ${
+              className={`w-full mt-8 py-3 rounded-xl font-bold text-xs shadow-md transition-all ${
                 plan.popular
                   ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-indigo-500/25'
-                  : 'bg-[#131c31] hover:bg-[#1e293b] text-white border border-[#1e293b]'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-[#131c31] dark:hover:bg-[#1e293b] dark:text-white border border-slate-200 dark:border-[#1e293b]'
               }`}
             >
               {plan.buttonText}

@@ -8,8 +8,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('pulso_theme') || 'light';
+          if (t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body class="bg-[#090d16] text-slate-100 font-sans antialiased overflow-hidden select-none">
+  <body class="bg-[#f8fafc] text-slate-800 dark:bg-[#090d16] dark:text-slate-100 font-sans antialiased overflow-hidden select-none">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -47,14 +47,28 @@ export default function BaseLayout({ children }: BaseLayoutProps) {
     return unsub;
   }, []);
 
+  const applyTheme = (t: 'dark' | 'light' | 'system') => {
+    if (t === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (t === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
   const handleThemeChange = (newTheme: 'dark' | 'light' | 'system') => {
     setTheme(newTheme);
     localStorage.setItem('pulso_theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    applyTheme(newTheme);
   };
 
   const isDark = theme === 'dark';

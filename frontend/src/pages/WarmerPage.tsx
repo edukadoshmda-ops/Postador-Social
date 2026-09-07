@@ -393,12 +393,12 @@ export default function WarmerPage() {
       )}
 
       <div className="flex items-center gap-2.5 pt-1">
-        <Flame className="w-5 h-5 text-indigo-400" />
-        <h1 className="text-xl font-bold text-white tracking-tight">Aquecedores</h1>
+        <Flame className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+        <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">Aquecedores</h1>
       </div>
 
-      {/* Container com as 3 abas de aquecimento - Exatamente idêntico à Imagem enviada */}
-      <div className="bg-[#52576b] p-1 rounded-xl border border-slate-500/30 select-none shadow-md flex items-stretch gap-0.5">
+      {/* Container com as 3 abas de aquecimento */}
+      <div className="bg-slate-200/80 dark:bg-[#1e293b] p-1 rounded-xl border border-slate-300 dark:border-slate-700/50 select-none shadow-xs flex items-stretch gap-0.5">
         <button
           type="button"
           onClick={() => setActiveTab('BROWSER')}
@@ -406,7 +406,7 @@ export default function WarmerPage() {
             'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer',
             activeTab === 'BROWSER'
               ? 'bg-[#5054d4] text-white shadow-md border-l-2 border-indigo-300'
-              : 'text-slate-200 hover:text-white hover:bg-white/10'
+              : 'text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
           )}
         >
           <Globe className="w-3.5 h-3.5 opacity-90" />
@@ -420,7 +420,7 @@ export default function WarmerPage() {
             'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer',
             activeTab === 'PROFILE'
               ? 'bg-[#5054d4] text-white shadow-md border-l-2 border-indigo-300'
-              : 'text-slate-200 hover:text-white hover:bg-white/10'
+              : 'text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
           )}
         >
           <User className="w-3.5 h-3.5 opacity-90" />
@@ -434,7 +434,7 @@ export default function WarmerPage() {
             'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer',
             activeTab === 'GROUPS'
               ? 'bg-[#5054d4] text-white shadow-md border-l-2 border-indigo-300'
-              : 'text-slate-200 hover:text-white hover:bg-white/10'
+              : 'text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
           )}
         >
           <Users className="w-3.5 h-3.5 opacity-90" />
@@ -448,7 +448,7 @@ export default function WarmerPage() {
       {activeTab === 'PROFILE' && (
         <div className="space-y-6">
           {/* Top Group Selection Card */}
-          <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-4 md:p-5 space-y-3.5 shadow-xl">
+          <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-4 md:p-5 space-y-3.5 shadow-xs dark:shadow-xl">
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => {
@@ -458,8 +458,8 @@ export default function WarmerPage() {
                 className={clsx(
                   'py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center',
                   selectorMode === 'GROUPS'
-                    ? 'bg-[#1e2954]/50 border-indigo-500/60 text-indigo-200 shadow-md'
-                    : 'bg-[#0f172a] border-[#1e293b] text-slate-300 hover:border-slate-700'
+                    ? 'bg-indigo-50 dark:bg-[#1e2954]/50 border-indigo-400 dark:border-indigo-500/60 text-indigo-700 dark:text-indigo-200 shadow-xs'
+                    : 'bg-slate-50 dark:bg-[#0f172a] border-slate-200 dark:border-[#1e293b] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
                 )}
               >
                 Selecionar grupos
@@ -473,8 +473,8 @@ export default function WarmerPage() {
                 className={clsx(
                   'py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center',
                   selectorMode === 'LIST'
-                    ? 'bg-[#1e2954]/50 border-indigo-500/60 text-indigo-200 shadow-md'
-                    : 'bg-[#0f172a] border-[#1e293b] text-slate-300 hover:border-slate-700'
+                    ? 'bg-indigo-50 dark:bg-[#1e2954]/50 border-indigo-400 dark:border-indigo-500/60 text-indigo-700 dark:text-indigo-200 shadow-xs'
+                    : 'bg-slate-50 dark:bg-[#0f172a] border-slate-200 dark:border-[#1e293b] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
                 )}
               >
                 Usar lista salva
@@ -482,7 +482,7 @@ export default function WarmerPage() {
             </div>
 
             <div className="pt-1 space-y-1">
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-slate-700 dark:text-slate-300">
                 {selectedGroups.length === 0
                   ? 'Nenhum grupo. Abra o Facebook e sincronize seus grupos.'
                   : `${selectedGroups.length} grupo(s) selecionado(s) para aquecimento de perfil.`}
@@ -492,13 +492,13 @@ export default function WarmerPage() {
           </div>
 
           {/* Section: CONTROLES (Imagem 1) */}
-          <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-5 md:p-6 space-y-6 shadow-xl">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">CONTROLES</h3>
+          <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 md:p-6 space-y-6 shadow-xs dark:shadow-xl">
+            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CONTROLES</h3>
 
             {/* Sub-item 1: Ritmo do aquecimento */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
-                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-white">
+                <Clock className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                 <span>Ritmo do aquecimento</span>
               </div>
 
@@ -511,7 +511,7 @@ export default function WarmerPage() {
                     max={180}
                     value={profileMinInterval}
                     onChange={(e) => setProfileMinInterval(Math.min(Number(e.target.value), profileMaxInterval - 5))}
-                    className="w-full h-1.5 bg-[#172342] rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-[#172342] rounded-lg appearance-none cursor-pointer accent-indigo-500"
                   />
                   <input
                     type="range"
@@ -523,21 +523,21 @@ export default function WarmerPage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
                   <span>{profileMinInterval}s</span>
                   <span>{profileMaxInterval}s</span>
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-normal">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
                 Intervalo entre conexões. Mais espaçado = mais seguro e natural.
               </p>
             </div>
 
             {/* Sub-item 2: Meta de conexões */}
             <div className="space-y-2 pt-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
-                <Crosshair className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-white">
+                <Crosshair className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                 <span>Meta de conexões</span>
               </div>
 
@@ -550,7 +550,7 @@ export default function WarmerPage() {
                     max={50}
                     value={profileMinTarget}
                     onChange={(e) => setProfileMinTarget(Math.min(Number(e.target.value), profileMaxTarget - 1))}
-                    className="w-full h-1.5 bg-[#172342] rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-[#172342] rounded-lg appearance-none cursor-pointer accent-indigo-500"
                   />
                   <input
                     type="range"
@@ -562,151 +562,151 @@ export default function WarmerPage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
                   <span>{profileMinTarget}</span>
                   <span>{profileMaxTarget}</span>
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-normal">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
                 Uma meta aleatória dentro do intervalo será aquecida neste ciclo.
               </p>
             </div>
 
             {/* Sub-item 3: Para quem enviar (Grid de 6 opções) */}
             <div className="space-y-3 pt-2">
-              <span className="block text-xs font-semibold text-slate-300">Para quem enviar</span>
+              <span className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Para quem enviar</span>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 {/* 1. Coisas em comum */}
-                <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                   <input
                     type="checkbox"
                     checked={sendInCommon}
                     onChange={(e) => setSendInCommon(e.target.checked)}
-                    className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
-                  <div className="flex items-center gap-2 text-xs text-slate-200">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
                     <span>Envia para pessoas com coisas em comum</span>
                   </div>
                 </label>
 
                 {/* 2. Membros */}
-                <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                   <input
                     type="checkbox"
                     checked={sendMembers}
                     onChange={(e) => setSendMembers(e.target.checked)}
-                    className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
-                  <div className="flex items-center gap-2 text-xs text-slate-200">
-                    <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                    <Users className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" />
                     <span>Envia para membros</span>
                   </div>
                 </label>
 
                 {/* 3. Experts do grupo */}
-                <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                   <input
                     type="checkbox"
                     checked={sendExperts}
                     onChange={(e) => setSendExperts(e.target.checked)}
-                    className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
-                  <div className="flex items-center gap-2 text-xs text-slate-200">
-                    <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                    <Award className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
                     <span>Envia para experts do grupo</span>
                   </div>
                 </label>
 
                 {/* 4. Colaboradores do grupo */}
-                <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                   <input
                     type="checkbox"
                     checked={sendCollaborators}
                     onChange={(e) => setSendCollaborators(e.target.checked)}
-                    className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
-                  <div className="flex items-center gap-2 text-xs text-slate-200">
-                    <Heart className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                    <Heart className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400 shrink-0" />
                     <span>Envia para colaboradores do grupo</span>
                   </div>
                 </label>
 
                 {/* 5. Membros perto de mim no grupo */}
-                <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                   <input
                     type="checkbox"
                     checked={sendNearby}
                     onChange={(e) => setSendNearby(e.target.checked)}
-                    className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
-                  <div className="flex items-center gap-2 text-xs text-slate-200">
-                    <Crosshair className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                    <Crosshair className="w-3.5 h-3.5 text-teal-500 dark:text-teal-400 shrink-0" />
                     <span>Envia para membros perto de mim no grupo</span>
                   </div>
                 </label>
 
                 {/* 6. Administradores */}
-                <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                   <input
                     type="checkbox"
                     checked={sendAdmins}
                     onChange={(e) => setSendAdmins(e.target.checked)}
-                    className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
-                  <div className="flex items-center gap-2 text-xs text-slate-200">
-                    <Shield className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                    <Shield className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400 shrink-0" />
                     <span>Envia para administradores</span>
                   </div>
                 </label>
               </div>
 
-              <p className="text-[11px] text-slate-400 pt-1">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
                 Com mais de um critério marcado, a meta é dividida igualmente entre eles.
               </p>
             </div>
 
             {/* Sub-item 4: Regras de envio adicionais */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                 <input
                   type="checkbox"
                   checked={stopIfExcess}
                   onChange={(e) => setStopIfExcess(e.target.checked)}
-                  className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                 />
-                <div className="flex items-center gap-2 text-xs text-slate-200">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
                   <span>Parar envio se total for maior que a disponibilidade</span>
                 </div>
               </label>
 
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                 <input
                   type="checkbox"
                   checked={distributeBetweenGroups}
                   onChange={(e) => setDistributeBetweenGroups(e.target.checked)}
-                  className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                 />
-                <div className="flex items-center gap-2 text-xs text-slate-200">
-                  <Shuffle className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                  <Shuffle className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
                   <span>Distribuir entre grupos</span>
                 </div>
               </label>
             </div>
 
             {/* Sub-item 5: Enviar por pacotes */}
-            <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+            <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
               <input
                 type="checkbox"
                 checked={sendInBatches}
                 onChange={(e) => setSendInBatches(e.target.checked)}
-                className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                className="w-4 h-4 rounded bg-white dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
               />
-              <div className="flex items-center gap-2 text-xs text-slate-200">
-                <Package className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                <Package className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
                 <span>Enviar por pacotes</span>
               </div>
             </label>
@@ -716,7 +716,7 @@ export default function WarmerPage() {
               <button
                 onClick={handleToggleProfileWarmer}
                 className={clsx(
-                  'flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg',
+                  'flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md',
                   isProfileRunning
                     ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/20'
                     : 'bg-[#3742fa] hover:bg-[#2f3542] text-white shadow-indigo-600/20 active:scale-95'
@@ -738,15 +738,15 @@ export default function WarmerPage() {
 
             {/* Painel ativo caso em execução */}
             {isProfileRunning && (
-              <div className="p-4 bg-[#111c38] border border-indigo-500/30 rounded-xl space-y-2 animate-in fade-in">
+              <div className="p-4 bg-indigo-50/70 dark:bg-[#111c38] border border-indigo-200 dark:border-indigo-500/30 rounded-xl space-y-2 animate-in fade-in">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                     Aquecendo perfil organicamente...
                   </span>
-                  <span className="text-slate-400 font-mono">Duração: {formatTimer(profileElapsed)}</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-mono">Duração: {formatTimer(profileElapsed)}</span>
                 </div>
-                <div className="w-full h-1.5 bg-[#0b1329] rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-slate-200 dark:bg-[#0b1329] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
                     style={{
@@ -766,16 +766,16 @@ export default function WarmerPage() {
       {activeTab === 'GROUPS' && (
         <div className="space-y-6">
           {/* Top Banner de Calibração (Imagem 2) */}
-          <div className="bg-[#0b1f1a] border border-emerald-500/30 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-400 font-semibold shadow-lg">
-            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="bg-emerald-50 dark:bg-[#0b1f1a] border border-emerald-300 dark:border-emerald-500/30 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-700 dark:text-emerald-400 font-semibold shadow-sm dark:shadow-lg">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>Tudo calibrado. Pronto para aquecer.</span>
           </div>
 
           {/* Card 1: BUSCAR GRUPOS (Imagem 2) */}
-          <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-5 md:p-6 space-y-4 shadow-xl">
+          <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 md:p-6 space-y-4 shadow-sm dark:shadow-xl">
             {/* Header com botões de histórico e fechar no canto direito */}
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">BUSCAR GRUPOS</h3>
+              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">BUSCAR GRUPOS</h3>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -784,7 +784,7 @@ export default function WarmerPage() {
                     showToast('Histórico de grupos processados exibido.');
                   }}
                   title="Histórico de grupos processados"
-                  className="w-8 h-8 rounded-xl bg-[#0f172a] hover:bg-[#182343] border border-[#1e293b] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-[#182343] border border-slate-200 dark:border-[#1e293b] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <History className="w-4 h-4" />
                 </button>
@@ -795,7 +795,7 @@ export default function WarmerPage() {
                     showToast('Busca limpa');
                   }}
                   title="Limpar busca"
-                  className="w-8 h-8 rounded-xl bg-[#0f172a] hover:bg-[#182343] border border-[#1e293b] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-[#182343] border border-slate-200 dark:border-[#1e293b] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -812,7 +812,7 @@ export default function WarmerPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearchPublicGroups(); }}
                   placeholder="Ex.: Jaraguá do Sul, marketing digital..."
-                  className="w-full pl-9 pr-3 py-2.5 bg-[#0f172a] border border-[#1e293b] rounded-xl text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] rounded-xl text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -820,7 +820,7 @@ export default function WarmerPage() {
                 type="button"
                 onClick={handleSearchPublicGroups}
                 disabled={isSearchingPublic}
-                className="px-5 py-2.5 bg-[#3742fa] hover:bg-[#2f3542] text-white text-xs font-bold rounded-xl shadow-lg flex items-center gap-1.5 shrink-0 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 bg-[#3742fa] hover:bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 shrink-0 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
               >
                 <Search className="w-3.5 h-3.5" />
                 <span>{isSearchingPublic ? 'Buscando...' : 'Buscar'}</span>
@@ -829,7 +829,7 @@ export default function WarmerPage() {
 
             {/* Quantidade Desejada */}
             <div className="flex items-center gap-3 pt-0.5">
-              <div className="flex items-center gap-1.5 text-xs text-slate-300">
+              <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
                 <span>Quantidade desejada</span>
               </div>
@@ -839,12 +839,12 @@ export default function WarmerPage() {
                 max={500}
                 value={desiredQty}
                 onChange={(e) => setDesiredQty(Number(e.target.value))}
-                className="w-24 px-3 py-1.5 bg-[#0f172a] border border-[#1e293b] rounded-xl text-white text-xs font-bold focus:outline-none focus:border-indigo-500"
+                className="w-24 px-3 py-1.5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] rounded-xl text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-indigo-500"
               />
             </div>
 
             {/* Barra de Filtros e Ações (Imagem 2) */}
-            <div className="flex items-center justify-between pt-2 pb-1 border-t border-[#182343]">
+            <div className="flex items-center justify-between pt-2 pb-1 border-t border-slate-200/80 dark:border-[#182343]">
               {/* Esquerda: 3 botões de filtro em caixas quadradas e contagem */}
               <div className="flex items-center gap-2">
                 <button
@@ -858,8 +858,8 @@ export default function WarmerPage() {
                   className={clsx(
                     'w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer',
                     sortOrder === 'DESC'
-                      ? 'bg-[#182343] border-indigo-500/50 text-indigo-300'
-                      : 'bg-[#0f172a] border-[#1e293b] text-slate-400 hover:text-white'
+                      ? 'bg-indigo-50 dark:bg-[#182343] border-indigo-300 dark:border-indigo-500/50 text-indigo-600 dark:text-indigo-300'
+                      : 'bg-slate-100 dark:bg-[#0f172a] border-slate-200 dark:border-[#1e293b] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   )}
                 >
                   <ArrowDown className={clsx('w-3.5 h-3.5 transition-transform', sortOrder === 'ASC' && 'rotate-180')} />
@@ -877,8 +877,8 @@ export default function WarmerPage() {
                   className={clsx(
                     'w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer',
                     memberFilterIndex > 0
-                      ? 'bg-[#182343] border-indigo-500/50 text-indigo-300'
-                      : 'bg-[#0f172a] border-[#1e293b] text-slate-400 hover:text-white'
+                      ? 'bg-indigo-50 dark:bg-[#182343] border-indigo-300 dark:border-indigo-500/50 text-indigo-600 dark:text-indigo-300'
+                      : 'bg-slate-100 dark:bg-[#0f172a] border-slate-200 dark:border-[#1e293b] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   )}
                 >
                   <Users className="w-3.5 h-3.5" />
@@ -896,14 +896,14 @@ export default function WarmerPage() {
                   className={clsx(
                     'w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer',
                     postFilterIndex > 0
-                      ? 'bg-[#182343] border-indigo-500/50 text-indigo-300'
-                      : 'bg-[#0f172a] border-[#1e293b] text-slate-400 hover:text-white'
+                      ? 'bg-indigo-50 dark:bg-[#182343] border-indigo-300 dark:border-indigo-500/50 text-indigo-600 dark:text-indigo-300'
+                      : 'bg-slate-100 dark:bg-[#0f172a] border-slate-200 dark:border-[#1e293b] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   )}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                 </button>
 
-                <span className="text-xs text-slate-400 font-medium ml-1">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium ml-1">
                   {selectedPublicGroupIds.length} selecionado(s)
                 </span>
               </div>
@@ -913,14 +913,14 @@ export default function WarmerPage() {
                 <button
                   type="button"
                   onClick={toggleSelectAllPublicGroups}
-                  className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 text-indigo-600 dark:text-indigo-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Selecionar todos
                 </button>
                 <button
                   type="button"
                   onClick={clearPublicGroupSelection}
-                  className="px-3 py-1.5 rounded-lg bg-[#0f172a] hover:bg-[#131c31] border border-[#1e293b] text-slate-300 text-xs font-medium transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-[#131c31] border border-slate-200 dark:border-[#1e293b] text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer"
                 >
                   Limpar
                 </button>
@@ -928,7 +928,7 @@ export default function WarmerPage() {
             </div>
 
             {/* Lista dos Grupos Encontrados (Imagem 2) */}
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 pt-1 divide-y divide-slate-800/40">
+            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 pt-1 divide-y divide-slate-100 dark:divide-slate-800/40">
               {displayedPublicGroups.length === 0 ? (
                 <div className="text-center py-6 text-xs text-slate-500">
                   Nenhum grupo encontrado com os filtros selecionados.
@@ -939,17 +939,17 @@ export default function WarmerPage() {
                   return (
                     <div
                       key={group.id}
-                      className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 group/item hover:bg-[#091022]/40 p-2 rounded-xl transition-colors"
+                      className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 group/item hover:bg-slate-50 dark:hover:bg-[#091022]/40 p-2 rounded-xl transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => togglePublicGroup(group.id)}
-                          className="w-4 h-4 rounded bg-[#0f172a] border-slate-700 text-[#3742fa] focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
+                          className="w-4 h-4 rounded bg-slate-50 dark:bg-[#0f172a] border-slate-300 dark:border-slate-700 text-[#3742fa] focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
                         />
 
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 shrink-0 border border-slate-700/60 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center">
                           {group.avatar ? (
                             <img
                               src={group.avatar}
@@ -963,10 +963,10 @@ export default function WarmerPage() {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-xs font-bold text-white truncate group-hover/item:text-indigo-300 transition-colors">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover/item:text-indigo-600 dark:group-hover/item:text-indigo-300 transition-colors">
                             {group.name}
                           </h4>
-                          <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                             {group.memberCountLabel || `${group.memberCount} membros`} · {group.postsPerDayLabel || `${group.postsPerDay} posts por dia`}
                           </p>
                         </div>
@@ -975,7 +975,7 @@ export default function WarmerPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         {group.isSafe && (
                           <span title="Grupo público verificado para entrada segura">
-                            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                            <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                           </span>
                         )}
                         <a
@@ -983,7 +983,7 @@ export default function WarmerPage() {
                           target="_blank"
                           rel="noreferrer"
                           title="Ver grupo no Facebook"
-                          className="p-1 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-slate-800/60 transition-colors"
+                          className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
@@ -996,20 +996,20 @@ export default function WarmerPage() {
           </div>
 
           {/* Card 2: CONTROLES DE EXECUÇÃO (Imagem 2 e 3) */}
-          <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-5 md:p-6 space-y-5 shadow-xl">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">CONTROLES DE EXECUÇÃO</h3>
+          <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 md:p-6 space-y-5 shadow-sm dark:shadow-xl">
+            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CONTROLES DE EXECUÇÃO</h3>
 
             {/* Filtros da Imagem 3 no topo */}
-            <div className="flex items-center gap-4 flex-wrap text-xs text-slate-300 pb-2 border-b border-[#182343]">
+            <div className="flex items-center gap-4 flex-wrap text-xs text-slate-700 dark:text-slate-300 pb-2 border-b border-slate-200/80 dark:border-[#182343]">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={executeInListOrder}
                   onChange={(e) => setExecuteInListOrder(e.target.checked)}
-                  className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  className="w-4 h-4 rounded bg-slate-100 dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                 />
-                <span className="flex items-center gap-1.5">
-                  <ListOrdered className="w-3.5 h-3.5 text-indigo-400" /> Executar na ordem atual da lista
+                <span className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-medium">
+                  <ListOrdered className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" /> Executar na ordem atual da lista
                 </span>
               </label>
 
@@ -1018,9 +1018,9 @@ export default function WarmerPage() {
                   type="checkbox"
                   checked={onlyAlreadyMember}
                   onChange={(e) => setOnlyAlreadyMember(e.target.checked)}
-                  className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  className="w-4 h-4 rounded bg-slate-100 dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                 />
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-medium">
                   <Users className="w-3.5 h-3.5 text-slate-400" /> Grupos que já sou membro
                 </span>
               </label>
@@ -1032,8 +1032,8 @@ export default function WarmerPage() {
 
             {/* Ritmo (segundos entre ações) */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
-                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white">
+                <Clock className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                 <span>Ritmo (segundos entre ações)</span>
               </div>
 
@@ -1046,7 +1046,7 @@ export default function WarmerPage() {
                     max={180}
                     value={groupMinInterval}
                     onChange={(e) => setGroupMinInterval(Math.min(Number(e.target.value), groupMaxInterval - 5))}
-                    className="w-full h-1.5 bg-[#172342] rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-[#172342] rounded-lg appearance-none cursor-pointer accent-indigo-500"
                   />
                   <input
                     type="range"
@@ -1058,27 +1058,27 @@ export default function WarmerPage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
                   <span>{groupMinInterval}s</span>
                   <span>{groupMaxInterval}s</span>
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Intervalo aleatório entre cada entrada, para reduzir risco de bloqueio.
               </p>
             </div>
 
             {/* Checkbox: Responder perguntas de entrada com Tooltip (Imagem 3) */}
             <div className="relative">
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-300 dark:hover:border-indigo-500/40 cursor-pointer select-none transition-all">
                 <input
                   type="checkbox"
                   checked={answerQuestions}
                   onChange={(e) => setAnswerQuestions(e.target.checked)}
-                  className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  className="w-4 h-4 rounded bg-slate-100 dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                 />
-                <div className="flex items-center gap-2 text-xs text-slate-200">
+                <div className="flex items-center gap-2 text-xs text-slate-800 dark:text-slate-200">
                   <span
                     onMouseEnter={() => setShowQuestionTooltip(true)}
                     onMouseLeave={() => setShowQuestionTooltip(false)}
@@ -1086,29 +1086,29 @@ export default function WarmerPage() {
                   >
                     <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
                   </span>
-                  <span>Responder perguntas de entrada</span>
+                  <span className="font-medium">Responder perguntas de entrada</span>
                 </div>
               </label>
 
               {/* Tooltip Popup (Exatamente como aparece na Imagem 3) */}
               {showQuestionTooltip && (
-                <div className="absolute left-10 -top-8 z-30 px-3 py-1.5 bg-black/90 border border-slate-700 text-white text-[11px] rounded-lg shadow-xl max-w-sm pointer-events-none">
+                <div className="absolute left-10 -top-8 z-30 px-3 py-1.5 bg-slate-900 dark:bg-black/90 border border-slate-700 text-white text-[11px] rounded-lg shadow-xl max-w-sm pointer-events-none">
                   Quando o grupo exige perguntas de aprovação, responde cada campo com "ok" quando possível.
                 </div>
               )}
             </div>
 
             {/* Checkbox: Execução por pacote */}
-            <label className="flex items-center gap-3 p-3 rounded-xl bg-[#0e172e] border border-[#1b2746] hover:border-indigo-500/40 cursor-pointer select-none transition-all">
+            <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#0e172e] border border-slate-200 dark:border-[#1b2746] hover:border-indigo-300 dark:hover:border-indigo-500/40 cursor-pointer select-none transition-all">
               <input
                 type="checkbox"
                 checked={groupExecutionBatch}
                 onChange={(e) => setGroupExecutionBatch(e.target.checked)}
-                className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                className="w-4 h-4 rounded bg-slate-100 dark:bg-[#131c31] border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
               />
-              <div className="flex items-center gap-2 text-xs text-slate-200">
+              <div className="flex items-center gap-2 text-xs text-slate-800 dark:text-slate-200">
                 <Package className="w-3.5 h-3.5 text-slate-400" />
-                <span>Execução por pacote</span>
+                <span className="font-medium">Execução por pacote</span>
               </div>
             </label>
 
@@ -1117,10 +1117,10 @@ export default function WarmerPage() {
               <button
                 onClick={handleToggleGroupsWarmer}
                 className={clsx(
-                  'flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg',
+                  'flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md',
                   isGroupsRunning
                     ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/20'
-                    : 'bg-[#3742fa] hover:bg-[#2f3542] text-white shadow-indigo-600/20 active:scale-95'
+                    : 'bg-[#3742fa] hover:bg-indigo-600 text-white shadow-indigo-600/20 active:scale-95'
                 )}
               >
                 {isGroupsRunning ? (
@@ -1143,27 +1143,27 @@ export default function WarmerPage() {
           {/* ========================================================= */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Lado Esquerdo: Status e Métricas (Imagem 3) */}
-            <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-5 space-y-4 shadow-xl">
+            <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 space-y-4 shadow-sm dark:shadow-xl">
               {/* Header com Status e Ratio */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span
                     className={clsx(
                       'w-2.5 h-2.5 rounded-full',
-                      isGroupsRunning ? 'bg-cyan-400 animate-ping' : 'bg-slate-500'
+                      isGroupsRunning ? 'bg-cyan-500 animate-ping' : 'bg-slate-400 dark:bg-slate-500'
                     )}
                   ></span>
-                  <span className="text-xs font-bold text-white">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
                     {isGroupsRunning ? 'Executando' : 'Parado'}
                   </span>
                 </div>
-                <span className="text-xs font-mono text-slate-400 font-bold">
+                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-bold">
                   {currentProgressIndex}/{totalGroupsCount}
                 </span>
               </div>
 
               {/* Barra de Progresso ciano/teal (Imagem 3) */}
-              <div className="w-full h-1.5 bg-[#090f1f] rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-[#090f1f] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full transition-all duration-300"
                   style={{
@@ -1173,56 +1173,56 @@ export default function WarmerPage() {
               </div>
 
               {/* Duração total */}
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Clock className="w-3.5 h-3.5 text-slate-500" />
+              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 <span>Duração total: {formatTimer(groupsElapsed)}</span>
               </div>
 
               {/* Grid 2x2 de métricas da Imagem 3 */}
               <div className="grid grid-cols-2 gap-3 pt-1">
                 {/* 1. Entrou */}
-                <div className="p-3 rounded-xl bg-[#091024] border border-[#1a2544] space-y-1">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#091024] border border-slate-200/80 dark:border-[#1a2544] space-y-1">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-emerald-400" />
-                    <span className="text-base font-bold text-white">{countEntered}</span>
+                    <Users className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                    <span className="text-base font-bold text-slate-900 dark:text-white">{countEntered}</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Entrou</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Entrou</span>
                 </div>
 
                 {/* 2. Já membro */}
-                <div className="p-3 rounded-xl bg-[#091024] border border-[#1a2544] space-y-1">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#091024] border border-slate-200/80 dark:border-[#1a2544] space-y-1">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-400" />
-                    <span className="text-base font-bold text-white">{countAlreadyMember}</span>
+                    <Users className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                    <span className="text-base font-bold text-slate-900 dark:text-white">{countAlreadyMember}</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Já membro</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Já membro</span>
                 </div>
 
                 {/* 3. Aguardando */}
-                <div className="p-3 rounded-xl bg-[#091024] border border-[#1a2544] space-y-1">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#091024] border border-slate-200/80 dark:border-[#1a2544] space-y-1">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-400" />
-                    <span className="text-base font-bold text-white">{countWaiting}</span>
+                    <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                    <span className="text-base font-bold text-slate-900 dark:text-white">{countWaiting}</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Aguardando</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Aguardando</span>
                 </div>
 
                 {/* 4. Falhou */}
-                <div className="p-3 rounded-xl bg-[#091024] border border-[#1a2544] space-y-1">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#091024] border border-slate-200/80 dark:border-[#1a2544] space-y-1">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400" />
-                    <span className="text-base font-bold text-white">{countFailed}</span>
+                    <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400" />
+                    <span className="text-base font-bold text-slate-900 dark:text-white">{countFailed}</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Falhou</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Falhou</span>
                 </div>
               </div>
             </div>
 
             {/* Lado Direito: Resultado da execução (Imagem 3) */}
-            <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-5 space-y-4 shadow-xl flex flex-col">
+            <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 space-y-4 shadow-sm dark:shadow-xl flex flex-col">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
-                <h3 className="text-xs font-bold text-white">Resultado da execução</h3>
+                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Resultado da execução</h3>
               </div>
 
               {/* Lista de logs de entrada */}
@@ -1235,18 +1235,18 @@ export default function WarmerPage() {
                   executionLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="p-3 rounded-xl bg-[#091024] border border-[#1a2544] flex items-center justify-between gap-3 animate-in fade-in"
+                      className="p-3 rounded-xl bg-slate-50 dark:bg-[#091024] border border-slate-200/80 dark:border-[#1a2544] flex items-center justify-between gap-3 animate-in fade-in"
                     >
                       <div className="space-y-1 min-w-0">
-                        <h4 className="text-xs font-bold text-white truncate uppercase">{log.name}</h4>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate uppercase">{log.name}</h4>
                         <span
                           className={clsx(
                             'inline-block text-[11px] font-semibold',
                             log.status === 'Entrou'
-                              ? 'text-emerald-400'
+                              ? 'text-emerald-600 dark:text-emerald-400'
                               : log.status === 'Já membro'
-                              ? 'text-blue-400'
-                              : 'text-amber-400'
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-amber-600 dark:text-amber-400'
                           )}
                         >
                           {log.status}
@@ -1258,7 +1258,7 @@ export default function WarmerPage() {
                         target="_blank"
                         rel="noreferrer"
                         title="Ver busca do grupo no Facebook"
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-[#131c31] transition-colors shrink-0"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#131c31] transition-colors shrink-0"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -1277,13 +1277,13 @@ export default function WarmerPage() {
       {activeTab === 'BROWSER' && (
         <div className="space-y-6">
           {/* Top Info Banner */}
-          <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-5 shadow-xl flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
+          <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 shadow-sm dark:shadow-xl flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
               <Globe className="w-5 h-5" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-white">Aquecimento Natural de Navegador & Cookies</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Aquecimento Natural de Navegador & Cookies</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 Simula um usuário real navegando no Facebook e na web pelo navegador integrado. 
                 Gera histórico autêntico, aquece cookies de sessão, eleva o Trust Score da conta e blinda o perfil contra restrições de atividade.
               </p>
@@ -1291,13 +1291,13 @@ export default function WarmerPage() {
           </div>
 
           {/* Section: CONTROLES DE NAVEGAÇÃO */}
-          <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-5 md:p-6 space-y-6 shadow-xl">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">CONTROLES DE NAVEGAÇÃO</h3>
+          <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 md:p-6 space-y-6 shadow-sm dark:shadow-xl">
+            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CONTROLES DE NAVEGAÇÃO</h3>
 
             {/* Ritmo entre ações */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                 <span>Ritmo da navegação (segundos entre ações)</span>
               </div>
               <div className="space-y-1.5 pt-1">
@@ -1311,7 +1311,7 @@ export default function WarmerPage() {
                       const val = Number(e.target.value);
                       if (val <= browserMaxInterval) setBrowserMinInterval(val);
                     }}
-                    className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                    className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
                   />
                   <input
                     type="range"
@@ -1322,10 +1322,10 @@ export default function WarmerPage() {
                       const val = Number(e.target.value);
                       if (val >= browserMinInterval) setBrowserMaxInterval(val);
                     }}
-                    className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                    className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
                   />
                 </div>
-                <div className="flex justify-between text-xs font-semibold text-slate-400 font-mono">
+                <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-400 font-mono">
                   <span>{browserMinInterval}s</span>
                   <span>{browserMaxInterval}s</span>
                 </div>
@@ -1337,12 +1337,12 @@ export default function WarmerPage() {
 
             {/* Duração da Sessão */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-white">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                  <Clock className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                   <span>Duração máxima da sessão</span>
                 </div>
-                <span className="text-indigo-400 font-mono font-bold">{browserDuration} minutos</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-mono font-bold">{browserDuration} minutos</span>
               </div>
               <input
                 type="range"
@@ -1351,7 +1351,7 @@ export default function WarmerPage() {
                 step={5}
                 value={browserDuration}
                 onChange={(e) => setBrowserDuration(Number(e.target.value))}
-                className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
               />
               <div className="flex justify-between text-[11px] text-slate-500 font-mono">
                 <span>5 min</span>
@@ -1362,57 +1362,57 @@ export default function WarmerPage() {
 
             {/* Ações a simular */}
             <div className="space-y-3">
-              <span className="text-xs font-semibold text-slate-300">Ações humanas a executar</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Ações humanas a executar</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-700 cursor-pointer">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={browserScrollFeed}
                     onChange={(e) => setBrowserScrollFeed(e.target.checked)}
                     className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                   />
-                  <div className="text-xs text-slate-200">
+                  <div className="text-xs text-slate-800 dark:text-slate-200">
                     <span className="font-semibold block">Rolar feed de notícias</span>
-                    <span className="text-[11px] text-slate-400">Scroll com pausas em posts aleatórios</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Scroll com pausas em posts aleatórios</span>
                   </div>
                 </label>
 
-                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-700 cursor-pointer">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={browserWatchReels}
                     onChange={(e) => setBrowserWatchReels(e.target.checked)}
                     className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                   />
-                  <div className="text-xs text-slate-200">
+                  <div className="text-xs text-slate-800 dark:text-slate-200">
                     <span className="font-semibold block">Assistir Reels e vídeos</span>
-                    <span className="text-[11px] text-slate-400">Pausar 10 a 30s assistindo conteúdo</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Pausar 10 a 30s assistindo conteúdo</span>
                   </div>
                 </label>
 
-                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-700 cursor-pointer">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={browserLikePosts}
                     onChange={(e) => setBrowserLikePosts(e.target.checked)}
                     className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                   />
-                  <div className="text-xs text-slate-200">
+                  <div className="text-xs text-slate-800 dark:text-slate-200">
                     <span className="font-semibold block">Curtir publicações do feed</span>
-                    <span className="text-[11px] text-slate-400">Deixar reações aleatórias em posts</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Deixar reações aleatórias em posts</span>
                   </div>
                 </label>
 
-                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-[#0f172a] border border-[#1e293b] hover:border-slate-700 cursor-pointer">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={browserAntiDetection}
                     onChange={(e) => setBrowserAntiDetection(e.target.checked)}
                     className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                   />
-                  <div className="text-xs text-slate-200">
+                  <div className="text-xs text-slate-800 dark:text-slate-200">
                     <span className="font-semibold block">Módulo Anti-Detecção</span>
-                    <span className="text-[11px] text-slate-400">Movimento natural do mouse e digitação humana</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Movimento natural do mouse e digitação humana</span>
                   </div>
                 </label>
               </div>
@@ -1432,7 +1432,7 @@ export default function WarmerPage() {
                   }
                 }}
                 className={clsx(
-                  'w-full py-3 px-4 rounded-xl text-xs font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer',
+                  'w-full py-3 px-4 rounded-xl text-xs font-bold text-white transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer',
                   browserRunning
                     ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-950/40'
                     : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-indigo-950/40'
@@ -1455,28 +1455,28 @@ export default function WarmerPage() {
 
           {/* Monitoramento em tempo real */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[#0b1329] border border-[#182343] rounded-2xl p-5 space-y-4 shadow-xl">
+            <div className="bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 space-y-4 shadow-sm dark:shadow-xl">
               <div className="flex items-center justify-between">
                 <span className={clsx(
                   'px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5',
-                  browserRunning ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'
+                  browserRunning ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                 )}>
-                  <span className={clsx('w-2 h-2 rounded-full', browserRunning ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500')} />
+                  <span className={clsx('w-2 h-2 rounded-full', browserRunning ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse' : 'bg-slate-400 dark:bg-slate-500')} />
                   {browserRunning ? 'Navegando no Facebook' : 'Parado'}
                 </span>
-                <span className="text-xs font-mono text-slate-400">
+                <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
                   {Math.floor(browserElapsed / 60)}m {browserElapsed % 60}s
                 </span>
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Progresso da Sessão</span>
-                  <span className="text-indigo-400 font-bold">
+                  <span className="text-slate-500 dark:text-slate-400">Progresso da Sessão</span>
+                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">
                     {Math.min(100, Math.round((browserElapsed / (browserDuration * 60)) * 100))}%
                   </span>
                 </div>
-                <div className="w-full bg-[#0f172a] h-2 rounded-full overflow-hidden border border-[#1e293b]">
+                <div className="w-full bg-slate-100 dark:bg-[#0f172a] h-2 rounded-full overflow-hidden border border-slate-200 dark:border-[#1e293b]">
                   <div
                     className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-300 rounded-full"
                     style={{ width: `${Math.min(100, Math.round((browserElapsed / (browserDuration * 60)) * 100))}%` }}
@@ -1485,57 +1485,57 @@ export default function WarmerPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2">
-                <div className="bg-[#0f172a] p-3 rounded-xl border border-[#1e293b]">
-                  <p className="text-base font-bold text-white font-mono">{browserStats.scrolls + (browserRunning ? Math.floor(browserElapsed / 8) : 0)}</p>
-                  <p className="text-[11px] text-slate-400">Scrolls no feed</p>
+                <div className="bg-slate-50 dark:bg-[#0f172a] p-3 rounded-xl border border-slate-200/80 dark:border-[#1e293b]">
+                  <p className="text-base font-bold text-slate-900 dark:text-white font-mono">{browserStats.scrolls + (browserRunning ? Math.floor(browserElapsed / 8) : 0)}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Scrolls no feed</p>
                 </div>
-                <div className="bg-[#0f172a] p-3 rounded-xl border border-[#1e293b]">
-                  <p className="text-base font-bold text-indigo-400 font-mono">{browserStats.reels + (browserRunning ? Math.floor(browserElapsed / 30) : 0)}</p>
-                  <p className="text-[11px] text-slate-400">Reels assistidos</p>
+                <div className="bg-slate-50 dark:bg-[#0f172a] p-3 rounded-xl border border-slate-200/80 dark:border-[#1e293b]">
+                  <p className="text-base font-bold text-indigo-600 dark:text-indigo-400 font-mono">{browserStats.reels + (browserRunning ? Math.floor(browserElapsed / 30) : 0)}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Reels assistidos</p>
                 </div>
-                <div className="bg-[#0f172a] p-3 rounded-xl border border-[#1e293b]">
-                  <p className="text-base font-bold text-emerald-400 font-mono">{browserStats.likes + (browserRunning ? Math.floor(browserElapsed / 25) : 0)}</p>
-                  <p className="text-[11px] text-slate-400">Curtidas dadas</p>
+                <div className="bg-slate-50 dark:bg-[#0f172a] p-3 rounded-xl border border-slate-200/80 dark:border-[#1e293b]">
+                  <p className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">{browserStats.likes + (browserRunning ? Math.floor(browserElapsed / 25) : 0)}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Curtidas dadas</p>
                 </div>
-                <div className="bg-[#0f172a] p-3 rounded-xl border border-[#1e293b]">
-                  <p className="text-base font-bold text-cyan-400 font-mono">{browserStats.pages + (browserRunning ? Math.floor(browserElapsed / 60) : 0)}</p>
-                  <p className="text-[11px] text-slate-400">Páginas visitadas</p>
+                <div className="bg-slate-50 dark:bg-[#0f172a] p-3 rounded-xl border border-slate-200/80 dark:border-[#1e293b]">
+                  <p className="text-base font-bold text-cyan-600 dark:text-cyan-400 font-mono">{browserStats.pages + (browserRunning ? Math.floor(browserElapsed / 60) : 0)}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Páginas visitadas</p>
                 </div>
               </div>
             </div>
 
-            <div className="md:col-span-2 bg-[#0b1329] border border-[#182343] rounded-2xl p-5 space-y-3 shadow-xl">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className="md:col-span-2 bg-white dark:bg-[#0b1329] border border-slate-200/80 dark:border-[#182343] rounded-2xl p-5 space-y-3 shadow-sm dark:shadow-xl">
+              <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Log de Atividades do Navegador
               </h4>
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0f172a] border border-[#1e293b]">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200/80 dark:border-[#1e293b]">
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-xs text-slate-200">Sessão inicializada no Facebook com cookies ativos</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                    <span className="text-xs text-slate-800 dark:text-slate-200">Sessão inicializada no Facebook com cookies ativos</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono">1m atrás</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">1m atrás</span>
                 </div>
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0f172a] border border-[#1e293b]">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200/80 dark:border-[#1e293b]">
                   <div className="flex items-center gap-2.5">
-                    <Eye className="w-4 h-4 text-indigo-400 shrink-0" />
-                    <span className="text-xs text-slate-200">Visualizou post no feed e rolou 420px</span>
+                    <Eye className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                    <span className="text-xs text-slate-800 dark:text-slate-200">Visualizou post no feed e rolou 420px</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono">45s atrás</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">45s atrás</span>
                 </div>
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0f172a] border border-[#1e293b]">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200/80 dark:border-[#1e293b]">
                   <div className="flex items-center gap-2.5">
-                    <ThumbsUp className="w-4 h-4 text-blue-400 shrink-0" />
-                    <span className="text-xs text-slate-200">Reação 'Curtir' deixada em publicação recomendada</span>
+                    <ThumbsUp className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
+                    <span className="text-xs text-slate-800 dark:text-slate-200">Reação 'Curtir' deixada em publicação recomendada</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono">20s atrás</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">20s atrás</span>
                 </div>
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0f172a] border border-[#1e293b]">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200/80 dark:border-[#1e293b]">
                   <div className="flex items-center gap-2.5">
-                    <Tv className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span className="text-xs text-slate-200">Reproduziu Reels por 18 segundos com pausa natural</span>
+                    <Tv className="w-4 h-4 text-purple-500 dark:text-purple-400 shrink-0" />
+                    <span className="text-xs text-slate-800 dark:text-slate-200">Reproduziu Reels por 18 segundos com pausa natural</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono">Agora</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Agora</span>
                 </div>
               </div>
             </div>
@@ -1545,20 +1545,20 @@ export default function WarmerPage() {
 
       {/* Modal para Selecionar Grupos / Listas */}
       {showGroupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative">
             <button
               onClick={() => setShowGroupModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div>
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {selectorMode === 'GROUPS' ? 'Selecionar Grupos' : 'Usar Lista Salva'}
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Escolha os grupos que serão alvo do aquecimento
               </p>
             </div>
@@ -1570,9 +1570,9 @@ export default function WarmerPage() {
                   return (
                     <label
                       key={g.id}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#131c31] border border-[#1e293b] cursor-pointer hover:border-indigo-500/40"
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#131c31] border border-slate-200 dark:border-[#1e293b] cursor-pointer hover:border-indigo-500/40"
                     >
-                      <span className="text-xs text-slate-200 font-medium truncate pr-2">{g.name}</span>
+                      <span className="text-xs text-slate-800 dark:text-slate-200 font-medium truncate pr-2">{g.name}</span>
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -1598,25 +1598,25 @@ export default function WarmerPage() {
                       showToast(`Lista "${l.name}" carregada!`);
                       setShowGroupModal(false);
                     }}
-                    className="w-full text-left p-3 rounded-xl bg-[#131c31] border border-[#1e293b] hover:border-indigo-500/40 flex items-center justify-between"
+                    className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-[#131c31] border border-slate-200 dark:border-[#1e293b] hover:border-indigo-500/40 flex items-center justify-between"
                   >
                     <div>
-                      <h4 className="text-xs font-bold text-white">{l.name}</h4>
-                      <p className="text-[11px] text-slate-400">{l.total_groups || 10} grupos</p>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">{l.name}</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{l.total_groups || 10} grupos</p>
                     </div>
-                    <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                    <CheckCircle2 className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                   </button>
                 ))}
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#1e293b]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-[#1e293b]">
               <button
                 onClick={() => {
                   setSelectedGroups(availableGroups);
                   showToast('Todos os grupos selecionados!');
                 }}
-                className="px-3 py-1.5 text-xs text-slate-300 hover:text-white"
+                className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               >
                 Selecionar todos
               </button>
