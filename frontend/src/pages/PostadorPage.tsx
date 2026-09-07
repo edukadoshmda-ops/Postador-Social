@@ -460,7 +460,7 @@ export default function PostadorPage() {
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-16 px-3">
-      {/* Top Header com ícone Send e Título Postador PRO */}
+      {/* Top Header com ícone Send, Título Postador PRO e botão Recolher */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3">
           <Send className="w-6 h-6 text-[#5054d4] stroke-[2.2]" />
@@ -468,38 +468,21 @@ export default function PostadorPage() {
             Postador PRO
           </h1>
         </div>
-      </div>
 
-      {/* Guia de 4 passos do Tutorial */}
-      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-emerald-500/10 border border-indigo-900/60 rounded-2xl p-3.5 flex items-center justify-between gap-2 overflow-x-auto shadow-xs text-xs">
-        <div className="flex items-center gap-2 font-bold text-indigo-400 shrink-0">
-          <Sparkles className="w-4 h-4" />
-          <span>Fluxo do Tutorial:</span>
-        </div>
-        <div className="flex items-center gap-2 text-slate-300 text-[11px] font-medium shrink-0">
-          <button type="button" onClick={() => navigate('/aquecedores')} className="px-2 py-0.5 rounded-lg bg-[#1e293b] hover:bg-indigo-900/30 text-slate-200 transition-colors cursor-pointer">
-            1. Aquecedor (Entrar nos Grupos)
-          </button>
-          <ArrowRight className="w-3 h-3 text-slate-400" />
-          <button type="button" onClick={() => navigate('/listas-grupos')} className="px-2 py-0.5 rounded-lg bg-[#1e293b] hover:bg-indigo-900/30 text-slate-200 transition-colors cursor-pointer">
-            2. Criar Lista de Grupos
-          </button>
-          <ArrowRight className="w-3 h-3 text-slate-400" />
-          <button type="button" onClick={() => navigate('/biblioteca')} className="px-2 py-0.5 rounded-lg bg-[#1e293b] hover:bg-indigo-900/30 text-slate-200 transition-colors cursor-pointer">
-            3. Biblioteca (Textos & Fotos)
-          </button>
-          <ArrowRight className="w-3 h-3 text-slate-400" />
-          <span className="px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-bold">4. Postador PRO (Campanha)</span>
-        </div>
-      </div>
-
-      {/* CALIBRADOR Accordion Banner (Exatamente igual ao print) */}
-      <div className="bg-[#121b2d] border border-[#1e293b] rounded-2xl overflow-hidden shadow-xs">
-        <div
+        <button
+          type="button"
           onClick={() => setCalibratorOpen(!calibratorOpen)}
-          className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-[#162238] transition-colors select-none"
+          className="text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer select-none font-medium"
         >
-          <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">
+          {calibratorOpen ? 'Recolher' : 'Expandir'}
+        </button>
+      </div>
+
+      {/* CALIBRADOR Card (Exatamente igual ao print da imagem) */}
+      <div className="bg-[#0e1628] border border-[#1a243b] rounded-2xl p-5 space-y-4 shadow-md">
+        {/* Header do Calibrador */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-slate-400 select-none">
             <Sliders className="w-4 h-4 text-slate-400" />
             <span>CALIBRADOR</span>
           </div>
@@ -507,88 +490,85 @@ export default function PostadorPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClearCalibrations();
-              }}
+              onClick={handleClearCalibrations}
               title="Limpar calibrações salvas"
-              className="p-1.5 rounded-xl bg-[#1e293b] hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-slate-700 transition-colors"
+              className="w-8 h-8 rounded-xl bg-[#1b253b]/80 hover:bg-[#25334d] border border-slate-500/70 text-slate-300 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
-            <div className="p-1 rounded-xl border border-slate-700 bg-[#1e293b] text-slate-300 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setCalibratorOpen(!calibratorOpen)}
+              title={calibratorOpen ? 'Recolher' : 'Expandir'}
+              className="w-8 h-8 rounded-xl bg-[#1b253b]/80 hover:bg-[#25334d] border border-slate-500/70 text-slate-300 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
+            >
               {calibratorOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </div>
+            </button>
           </div>
         </div>
 
         {calibratorOpen && (
-          <div className="p-6 pt-2 border-t border-[#1e293b] bg-[#0c1222] space-y-3 select-none">
-            {/* Texto */}
-            <div className="p-4 bg-[#131c31] border border-[#1e293b] rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-indigo-400" />
-                  <span className="font-bold text-sm text-white">Texto</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${calibrationState.text ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                    {calibrationState.text ? 'Calibrado ✓' : 'Falta calibrar'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleCalibration('text')}
-                  className="text-xs px-3 py-1 rounded-lg font-semibold border border-indigo-500/40 text-indigo-300 hover:bg-indigo-950/40"
-                >
-                  {calibrationState.text ? 'Calibrado' : '⚡ Calibrar Agora'}
-                </button>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Para ativar texto, faça 1 publicação manual SÓ COM TEXTO em qualquer grupo.
-              </p>
+          <div className="space-y-3 pt-1 select-none">
+            {/* 1. TEXTO (✓ OK quando calibrado) */}
+            <div
+              onClick={() => handleToggleCalibration('text')}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#131d33] transition-colors cursor-pointer"
+            >
+              <FileText className="w-4 h-4 text-slate-300 shrink-0" />
+              <span className="font-semibold text-sm text-white">Texto</span>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  calibrationState.text
+                    ? 'bg-[#064e3b]/80 text-[#34d399] border border-[#059669]/60'
+                    : 'bg-[#1b2438] text-slate-400 border border-slate-700'
+                }`}
+              >
+                {calibrationState.text ? '✓ OK' : 'Falta calibrar'}
+              </span>
             </div>
 
-            {/* Foto */}
-            <div className="p-4 bg-[#131c31] border border-[#1e293b] rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-blue-400" />
-                  <span className="font-bold text-sm text-white">Foto</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${calibrationState.photo ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                    {calibrationState.photo ? 'Calibrado ✓' : 'Falta calibrar'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleCalibration('photo')}
-                  className="text-xs px-3 py-1 rounded-lg font-semibold border border-blue-500/40 text-blue-300 hover:bg-blue-950/40"
+            {/* 2. FOTO (Container escuro com badge e instrução) */}
+            <div
+              onClick={() => handleToggleCalibration('photo')}
+              className="p-3.5 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 cursor-pointer hover:border-slate-700 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <ImageIcon className="w-4 h-4 text-slate-300 shrink-0" />
+                <span className="font-semibold text-sm text-white">Foto</span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    calibrationState.photo
+                      ? 'bg-[#064e3b]/80 text-[#34d399] border border-[#059669]/60'
+                      : 'bg-[#1b2438] text-slate-400 border border-slate-700'
+                  }`}
                 >
-                  {calibrationState.photo ? 'Calibrado' : '⚡ Calibrar Agora'}
-                </button>
+                  {calibrationState.photo ? '✓ OK' : 'Falta calibrar'}
+                </span>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-slate-400 pl-6 sm:pl-6.5 leading-relaxed">
                 Para postar imagem, faça 1 publicação manual COM uma foto e um texto.
               </p>
             </div>
 
-            {/* Vídeo */}
-            <div className="p-4 bg-[#131c31] border border-[#1e293b] rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Film className="w-4 h-4 text-purple-400" />
-                  <span className="font-bold text-sm text-white">Vídeo</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${calibrationState.video ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                    {calibrationState.video ? 'Calibrado ✓' : 'Falta calibrar'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleCalibration('video')}
-                  className="text-xs px-3 py-1 rounded-lg font-semibold border border-purple-500/40 text-purple-300 hover:bg-purple-950/40"
+            {/* 3. VÍDEO (Container escuro com badge e instrução) */}
+            <div
+              onClick={() => handleToggleCalibration('video')}
+              className="p-3.5 rounded-xl bg-[#090e1c] border border-[#162138] space-y-1.5 cursor-pointer hover:border-slate-700 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <Film className="w-4 h-4 text-slate-300 shrink-0" />
+                <span className="font-semibold text-sm text-white">Vídeo</span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    calibrationState.video
+                      ? 'bg-[#064e3b]/80 text-[#34d399] border border-[#059669]/60'
+                      : 'bg-[#1b2438] text-slate-400 border border-slate-700'
+                  }`}
                 >
-                  {calibrationState.video ? 'Calibrado' : '⚡ Calibrar Agora'}
-                </button>
+                  {calibrationState.video ? '✓ OK' : 'Falta calibrar'}
+                </span>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-slate-400 pl-6 sm:pl-6.5 leading-relaxed">
                 Vídeo é experimental. Faça 1 publicação manual apenas COM um vídeo.
               </p>
             </div>
