@@ -25,7 +25,8 @@ import {
   Users,
   Link2,
   X,
-  Plus
+  Plus,
+  Camera
 } from 'lucide-react';
 import clsx from 'clsx';
 import { api, Account } from '../core/apiService';
@@ -33,6 +34,12 @@ import { api, Account } from '../core/apiService';
 export default function AccountsPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // Custom Avatar state
+  const [customAvatar, setCustomAvatar] = useState<string | null>(() => {
+    return localStorage.getItem('pulso_custom_avatar') || null;
+  });
 
   // Accounts state
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -375,6 +382,59 @@ export default function AccountsPage() {
   // Conta principal do Facebook (para exibir como na imagem 3)
   const fbAccount = accounts.find((a) => a.platform === 'FACEBOOK') || accounts[0];
 
+  // Upload e remoção de imagem de perfil do usuário
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Por favor, selecione uma imagem válida (PNG, JPG, WEBP).', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      setCustomAvatar(dataUrl);
+      localStorage.setItem('pulso_custom_avatar', dataUrl);
+
+      if (fbAccount?.id) {
+        try {
+          await api.put(`/accounts/${fbAccount.id}`, { avatar_url: dataUrl });
+          setAccounts((prev) =>
+            prev.map((a) => (a.id === fbAccount.id ? { ...a, avatar_url: dataUrl } : a))
+          );
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      showToast('Foto de perfil atualizada com sucesso!');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCustomAvatar(null);
+    localStorage.removeItem('pulso_custom_avatar');
+    if (fbAccount?.id) {
+      try {
+        await api.put(`/accounts/${fbAccount.id}`, { avatar_url: null });
+        setAccounts((prev) =>
+          prev.map((a) => (a.id === fbAccount.id ? { ...a, avatar_url: undefined } : a))
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    showToast('Foto removida');
+  };
+
+  // Se o avatar for uma foto hardcoded do Unsplash, desconsidera para mostrar o ícone de upload
+  const effectiveAvatar =
+    customAvatar ||
+    (fbAccount?.avatar_url && !fbAccount.avatar_url.includes('unsplash')
+      ? fbAccount.avatar_url
+      : null);
+
   return (
     <div className="max-w-3xl mx-auto space-y-5 pb-16 px-3">
       {/* Toast feedback */}
@@ -429,15 +489,53 @@ export default function AccountsPage() {
         <div className="bg-white dark:bg-[#0f172a] border border-slate-200/80 dark:border-[#1e293b] rounded-2xl p-4 md:p-5 space-y-4 shadow-xs dark:shadow-xl">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3.5 min-w-0">
-              {/* Avatar */}
-              <img
-                src={
-                  fbAccount.avatar_url ||
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-                }
-                alt={fbAccount.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700 shrink-0 shadow-sm"
-              />
+              {/* Avatar com Upload de Imagem */}
+              <div className="relative shrink-0 group">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
+
+                {effectiveAvatar ? (
+                  <div
+                    onClick={() => avatarInputRef.current?.click()}
+                    title="Clique para trocar a foto de perfil"
+                    className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-indigo-500/70 hover:border-indigo-500 cursor-pointer shadow-sm group transition-all"
+                  >
+                    <img
+                      src={effectiveAvatar}
+                      alt={fbAccount.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <Camera className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    title="Clique para adicionar foto de perfil"
+                    className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-500 dark:hover:border-indigo-400 bg-slate-100 hover:bg-slate-200 dark:bg-[#131c31] dark:hover:bg-[#182343] text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 flex flex-col items-center justify-center cursor-pointer transition-all shadow-xs group"
+                  >
+                    <Camera className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  </button>
+                )}
+
+                {effectiveAvatar && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    title="Remover foto"
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-xs cursor-pointer transition-transform hover:scale-110"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                )}
+              </div>
 
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
