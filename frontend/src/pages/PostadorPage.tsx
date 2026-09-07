@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Send,
   RefreshCw,
@@ -29,12 +30,18 @@ import {
   Folder,
   Check,
   Layers,
-  FastForward
+  FastForward,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { api, Campaign, Account, GroupList, CreativeItem, LibraryFolder } from '../core/apiService';
 import CalibratorModal from '../components/CalibratorModal';
 
 export default function PostadorPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryListId = searchParams.get('listId');
+  const queryFolderId = searchParams.get('folderId');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -167,7 +174,12 @@ export default function PostadorPage() {
         const lists = glRes.value.data.data || [];
         setGroupLists(lists);
         if (lists.length > 0) {
-          setSelectedGroupListId((prev) => (prev && lists.some((l: any) => l.id === prev) ? prev : lists[0].id));
+          if (queryListId && lists.some((l: any) => l.id === queryListId)) {
+            setSelectedGroupListId(queryListId);
+            setTargetMode('USE_SAVED_LIST');
+          } else {
+            setSelectedGroupListId((prev) => (prev && lists.some((l: any) => l.id === prev) ? prev : lists[0].id));
+          }
         }
       }
       if (libRes.status === 'fulfilled') {
@@ -177,7 +189,14 @@ export default function PostadorPage() {
         const fList = folderRes.value.data.data || [];
         setFolders(fList);
         if (fList.length > 0) {
-          setSelectedFolder((prev) => (prev && fList.some((f: any) => f.id === prev) ? prev : fList[0].id));
+          if (queryFolderId && fList.some((f: any) => f.id === queryFolderId)) {
+            const matched = fList.find((f: any) => f.id === queryFolderId);
+            if (matched) handleSelectFolder(matched);
+            else setSelectedFolder(queryFolderId);
+            setPostSourceMode('BIBLIOTECA');
+          } else {
+            setSelectedFolder((prev) => (prev && fList.some((f: any) => f.id === prev) ? prev : fList[0].id));
+          }
         }
       }
     } catch (err) {
@@ -452,6 +471,29 @@ export default function PostadorPage() {
             🔒 PRO
           </span>
         </h1>
+      </div>
+
+      {/* Guia de 4 passos do Tutorial */}
+      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-emerald-500/10 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-3.5 flex items-center justify-between gap-2 overflow-x-auto shadow-xs text-xs">
+        <div className="flex items-center gap-2 font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+          <Sparkles className="w-4 h-4" />
+          <span>Fluxo do Tutorial:</span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 text-[11px] font-medium shrink-0">
+          <button type="button" onClick={() => navigate('/aquecedores')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            1. Aquecedor (Entrar nos Grupos)
+          </button>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <button type="button" onClick={() => navigate('/listas-grupos')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            2. Criar Lista de Grupos
+          </button>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <button type="button" onClick={() => navigate('/biblioteca')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            3. Biblioteca (Textos & Fotos)
+          </button>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <span className="px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-bold">4. Postador PRO (Campanha)</span>
+        </div>
       </div>
 
       {startError && (

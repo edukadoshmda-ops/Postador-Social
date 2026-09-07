@@ -10,7 +10,11 @@ import {
   Check,
   Trash2,
   FolderPlus,
-  RefreshCw
+  RefreshCw,
+  Send,
+  ArrowRight,
+  Folder,
+  Sparkles
 } from 'lucide-react';
 import { api, GroupList, WarmerManager } from '../core/apiService';
 
@@ -300,6 +304,29 @@ export default function GroupListsPage() {
         <h1 className="text-xl font-bold text-slate-800 dark:text-white">Listas de grupos</h1>
       </div>
 
+      {/* Guia de 4 passos do Tutorial */}
+      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-emerald-500/10 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-3.5 flex items-center justify-between gap-2 overflow-x-auto shadow-xs text-xs">
+        <div className="flex items-center gap-2 font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+          <Sparkles className="w-4 h-4" />
+          <span>Fluxo do Tutorial:</span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 text-[11px] font-medium shrink-0">
+          <button type="button" onClick={() => navigate('/aquecedores')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            1. Aquecedor (Entrar nos Grupos)
+          </button>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <span className="px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-bold">2. Criar Lista de Grupos</span>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <button type="button" onClick={() => navigate('/biblioteca')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            3. Biblioteca (Textos & Fotos)
+          </button>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <button type="button" onClick={() => navigate('/postador')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            4. Postador PRO (Campanha)
+          </button>
+        </div>
+      </div>
+
       {feedbackMsg && (
         <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xs">
           <span>{feedbackMsg}</span>
@@ -458,15 +485,28 @@ export default function GroupListsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {lists.map((l) => (
-              <div key={l.id} className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0b1021] flex items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <div key={l.id} className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0b1021] flex items-center justify-between gap-3 shadow-xs hover:border-[#818cf8]/50 transition-all">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: l.color || '#4f46e5' }} />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h4 className="font-semibold text-xs text-slate-800 dark:text-white truncate">{l.name}</h4>
                     <span className="text-[11px] text-slate-400">{l.total_groups || l.actual_groups_count || 0} grupos</span>
                   </div>
                 </div>
-                <button type="button" onClick={() => handleDeleteList(l.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Excluir lista"><Trash2 className="w-3.5 h-3.5" /></button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/postador?listId=${l.id}`)}
+                    className="px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-[#4f46e5] dark:text-[#818cf8] text-xs font-bold transition-all flex items-center gap-1 border border-indigo-200 dark:border-indigo-900 shadow-xs cursor-pointer"
+                    title="Criar campanha com esta lista no Postador PRO"
+                  >
+                    <Send className="w-3 h-3" />
+                    <span>Criar Campanha</span>
+                  </button>
+                  <button type="button" onClick={() => handleDeleteList(l.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer" title="Excluir lista">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

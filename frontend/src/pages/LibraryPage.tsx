@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Library,
   Type,
@@ -20,7 +21,10 @@ import {
   AlertCircle,
   Loader2,
   FolderPlus,
-  Check
+  Check,
+  Send,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { api, CreativeItem, LibraryFolder } from '../core/apiService';
 
@@ -48,6 +52,7 @@ const INITIAL_DEMO_ITEMS: CreativeItem[] = [
 ];
 
 export default function LibraryPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<LibraryTab>('TEXT');
   const [isInsertCollapsed, setIsInsertCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -352,6 +357,29 @@ export default function LibraryPage() {
         <h1 className="text-xl font-bold text-slate-800 dark:text-white">
           Biblioteca
         </h1>
+      </div>
+
+      {/* Guia de 4 passos do Tutorial */}
+      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-emerald-500/10 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-3.5 flex items-center justify-between gap-2 overflow-x-auto shadow-xs text-xs">
+        <div className="flex items-center gap-2 font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+          <Sparkles className="w-4 h-4" />
+          <span>Fluxo do Tutorial:</span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 text-[11px] font-medium shrink-0">
+          <button type="button" onClick={() => navigate('/aquecedores')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            1. Aquecedor (Entrar nos Grupos)
+          </button>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <button type="button" onClick={() => navigate('/listas-grupos')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            2. Criar Lista de Grupos
+          </button>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <span className="px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-bold">3. Biblioteca (Textos & Fotos)</span>
+          <ArrowRight className="w-3 h-3 text-slate-400" />
+          <button type="button" onClick={() => navigate('/postador')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-[#1e293b] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+            4. Postador PRO (Campanha)
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-[#0c1222] border border-slate-200/80 dark:border-[#1e293b] rounded-3xl p-6 sm:p-7 space-y-5 shadow-xl">
@@ -918,9 +946,20 @@ export default function LibraryPage() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  navigate(`/postador?folderId=${f.id}`);
+                }}
+                className="opacity-0 group-hover:opacity-100 ml-1 p-0.5 rounded hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-indigo-500 hover:text-indigo-600 transition-opacity"
+                title="Criar campanha com esta pasta no Postador PRO"
+              >
+                <Send className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleDeleteFolder(f.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 ml-1 p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-950/60 text-slate-400 hover:text-red-500 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 ml-0.5 p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-950/60 text-slate-400 hover:text-red-500 transition-opacity"
                 title="Excluir pasta"
               >
                 <Trash2 className="w-3 h-3" />
