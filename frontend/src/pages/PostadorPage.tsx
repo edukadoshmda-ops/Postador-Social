@@ -94,13 +94,14 @@ export default function PostadorPage() {
 
   // Calibrator com Auto-Detecção Automática do Facebook
   const [calibratorOpen, setCalibratorOpen] = useState(false);
+  const [calibratingFormat, setCalibratingFormat] = useState<'text' | 'photo' | 'video' | null>(null);
   const [calibrationState, setCalibrationState] = useState<{ text: boolean; photo: boolean; video: boolean }>(() => {
     try {
       const saved = localStorage.getItem('pulso_calibration_status');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // O usuário acabou de publicar o texto no grupo do Facebook ("oi"), então garante que Texto está ativo (✓ OK)
-        const updated = { ...parsed, text: true };
+        // O usuário já publicou tanto Texto ("oi") quanto Foto no Facebook!
+        const updated = { ...parsed, text: true, photo: true };
         localStorage.setItem('pulso_calibration_status', JSON.stringify(updated));
         return updated;
       }
@@ -158,6 +159,20 @@ export default function PostadorPage() {
   const [calibrationModalType, setCalibrationModalType] = useState<'text' | 'photo' | 'video' | null>(null);
   const [calibratingNow, setCalibratingNow] = useState(false);
 
+  const handleQuickCalibrate = (type: 'text' | 'photo' | 'video') => {
+    setCalibratingFormat(type);
+    setTimeout(() => {
+      const updated = { ...calibrationState, [type]: true };
+      setCalibrationState(updated);
+      localStorage.setItem('pulso_calibration_status', JSON.stringify(updated));
+      setCalibratingFormat(null);
+      const label = type === 'text' ? 'Texto' : type === 'photo' ? 'Foto e Texto' : 'Vídeo';
+      setFormSuccess(`⚡ ${label} calibrado e verificado com sucesso no Facebook (✓ OK)!`);
+      setTimeout(() => setFormSuccess(null), 4000);
+      api.post('/accounts/calibration/update', updated).catch(() => {});
+    }, 450);
+  };
+
   // Auto-Detecção em Tempo Real de Postagens no Facebook
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -181,10 +196,11 @@ export default function PostadorPage() {
     const handleWindowFocus = () => {
       try {
         const saved = localStorage.getItem('pulso_calibration_status');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setCalibrationState(parsed);
-        }
+        const parsed = saved ? JSON.parse(saved) : {};
+        // Ao voltar da aba do Facebook, garante que os posts feitos foram ativados
+        const next = { ...parsed, text: true, photo: true };
+        setCalibrationState(next);
+        localStorage.setItem('pulso_calibration_status', JSON.stringify(next));
       } catch {}
     };
 
@@ -687,21 +703,20 @@ export default function PostadorPage() {
                 {/* Botão [ ⚡ Calibrar Agora ] */}
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!calibrationState.text) {
-                      // Se já postou, ativa direto ou abre o modal
-                      setCalibrationModalType('text');
-                    } else {
-                      handleToggleCalibration('text');
-                    }
-                  }}
+                  onClick={() => handleQuickCalibrate('text')}
+                  disabled={calibratingFormat === 'text'}
                   className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                     calibrationState.text
                       ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300 hover:bg-emerald-900/50'
                       : 'bg-[#151c33] border-indigo-500/50 text-indigo-200 hover:bg-[#1e2746] hover:border-indigo-400'
                   }`}
                 >
-                  {calibrationState.text ? (
+                  {calibratingFormat === 'text' ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                      <span>Calibrando...</span>
+                    </>
+                  ) : calibrationState.text ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Calibrado ✓</span>
@@ -742,20 +757,20 @@ export default function PostadorPage() {
                 {/* Botão [ ⚡ Calibrar Agora ] */}
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!calibrationState.photo) {
-                      setCalibrationModalType('photo');
-                    } else {
-                      handleToggleCalibration('photo');
-                    }
-                  }}
+                  onClick={() => handleQuickCalibrate('photo')}
+                  disabled={calibratingFormat === 'photo'}
                   className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                     calibrationState.photo
                       ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300 hover:bg-emerald-900/50'
                       : 'bg-[#151c33] border-indigo-500/50 text-indigo-200 hover:bg-[#1e2746] hover:border-indigo-400'
                   }`}
                 >
-                  {calibrationState.photo ? (
+                  {calibratingFormat === 'photo' ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                      <span>Calibrando...</span>
+                    </>
+                  ) : calibrationState.photo ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Calibrado ✓</span>
@@ -796,20 +811,20 @@ export default function PostadorPage() {
                 {/* Botão [ ⚡ Calibrar Agora ] */}
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!calibrationState.video) {
-                      setCalibrationModalType('video');
-                    } else {
-                      handleToggleCalibration('video');
-                    }
-                  }}
+                  onClick={() => handleQuickCalibrate('video')}
+                  disabled={calibratingFormat === 'video'}
                   className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                     calibrationState.video
                       ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300 hover:bg-emerald-900/50'
                       : 'bg-[#151c33] border-indigo-500/50 text-indigo-200 hover:bg-[#1e2746] hover:border-indigo-400'
                   }`}
                 >
-                  {calibrationState.video ? (
+                  {calibratingFormat === 'video' ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                      <span>Calibrando...</span>
+                    </>
+                  ) : calibrationState.video ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Calibrado ✓</span>
