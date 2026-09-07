@@ -39,7 +39,7 @@ async function ensureContentScriptInjected(tabId) {
   }
 }
 
-async function extractViaTab(tabId, maxIterations = 20) {
+async function extractViaTab(tabId, maxIterations = 100) {
   try {
     await ensureContentScriptInjected(tabId);
     const resp = await chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_GROUPS', maxIterations });
@@ -91,7 +91,7 @@ async function handleSyncRequest(msg, sender, sendResponse) {
 
     // 1) Se a mensagem partiu de uma aba do Facebook, extrai dela diretamente
     if (sender.tab?.id && sender.tab?.url && sender.tab.url.includes('facebook.com')) {
-      const r = await extractViaTab(sender.tab.id, 20);
+      const r = await extractViaTab(sender.tab.id, 100);
       if (r.groups && r.groups.length > 0) {
         groups = r.groups;
         via = 'tab-direta';
@@ -126,7 +126,7 @@ async function handleSyncRequest(msg, sender, sendResponse) {
           await waitForTabToLoad(bestTab.id);
         }
 
-        const r = await extractViaTab(bestTab.id, 25);
+        const r = await extractViaTab(bestTab.id, 100);
         if (r.groups && r.groups.length > 0) {
           groups = r.groups;
           via = 'aba-facebook';
@@ -145,7 +145,7 @@ async function handleSyncRequest(msg, sender, sendResponse) {
           active: false
         });
         await waitForTabToLoad(newTab.id, 10000);
-        const r = await extractViaTab(newTab.id, 25);
+        const r = await extractViaTab(newTab.id, 100);
         if (r.groups && r.groups.length > 0) {
           groups = r.groups;
           via = 'aba-autoaberta';

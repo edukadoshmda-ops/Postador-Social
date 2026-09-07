@@ -97,3 +97,15 @@ warmerRouter.post('/trigger', (req: Request, res: Response) => {
     return sendError(res, error.message);
   }
 });
+
+// POST Clear warmer history
+warmerRouter.post('/clear-history', (req: Request, res: Response) => {
+  try {
+    const store = (db as any).getStore();
+    store.warmer_logs = [];
+    (db as any).save?.();
+    return sendSuccess(res, { cleared: true }, 'Histórico de grupos e perfis processados limpo com sucesso');
+  } catch (error: any) {
+    return sendError(res, error.message);
+  }
+});

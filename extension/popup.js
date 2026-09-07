@@ -1,18 +1,25 @@
-// Pulso Social — Extension Popup v5.80.0
+// Pulso Social — Extension Popup PRO v5.80.0
+// Estilo visual moderno idêntico ao painel oficial
+
 const statusEl = document.getElementById('status');
+const connStatusText = document.getElementById('connStatusText');
 const btnSync = document.getElementById('sync');
-const btnOpenJoins = document.getElementById('openJoins');
-const btnOpenPanel = document.getElementById('openPanel');
+const btnRunCampaign = document.getElementById('runCampaign');
+const btnStop = document.getElementById('stopCampaign');
+const btnRefresh = document.getElementById('btnRefresh');
+const btnNewCampaign = document.getElementById('btnNewCampaign');
+const cardVideoTutorial = document.getElementById('cardVideoTutorial');
+
+const apiInput = document.getElementById('apiInput');
+const btnSaveApi = document.getElementById('btnSaveApi');
+const btnResetApi = document.getElementById('btnResetApi');
+const btnVercelApi = document.getElementById('btnVercelApi');
 
 function setMsg(text, ok = true) {
   if (!statusEl) return;
   statusEl.textContent = text;
   statusEl.style.color = ok ? '#86efac' : '#fca5a5';
 }
-
-const apiInput = document.getElementById('apiInput');
-const btnSaveApi = document.getElementById('btnSaveApi');
-const btnResetApi = document.getElementById('btnResetApi');
 
 async function getApiBase() {
   try {
@@ -24,39 +31,156 @@ async function getApiBase() {
   return 'http://localhost:3001';
 }
 
-// Inicializa o input com padrão Localhost 3001
+function updateConnIndicator(url) {
+  if (!connStatusText) return;
+  if (url.includes('vercel.app')) {
+    connStatusText.textContent = 'Nuvem (Vercel)';
+    connStatusText.style.color = '#60a5fa';
+  } else if (url.includes('3001') || url.includes('localhost')) {
+    connStatusText.textContent = 'Local (3001)';
+    connStatusText.style.color = '#818cf8';
+  } else {
+    connStatusText.textContent = 'Personalizada';
+    connStatusText.style.color = '#34d399';
+  }
+}
+
+// Inicializa o input de conexão
 chrome.storage.local.get('pulso_api_base', (res) => {
-  if (apiInput) {
-    apiInput.value = res.pulso_api_base || 'http://localhost:3001';
+  const current = res.pulso_api_base || 'http://localhost:3001';
+  if (apiInput) apiInput.value = current;
+  updateConnIndicator(current);
+});
+
+// Calibrador Accordion
+const calibratorToggle = document.getElementById('calibratorToggle');
+const calibratorContent = document.getElementById('calibratorContent');
+const chevronBox = document.getElementById('chevronBox');
+
+calibratorToggle?.addEventListener('click', () => {
+  if (!calibratorContent) return;
+  const isHidden = calibratorContent.style.display === 'none' || !calibratorContent.style.display;
+  calibratorContent.style.display = isHidden ? 'block' : 'none';
+  if (chevronBox) {
+    if (isHidden) chevronBox.classList.add('open');
+    else chevronBox.classList.remove('open');
   }
 });
 
+// Botão Salvar API
 btnSaveApi?.addEventListener('click', async () => {
   const val = (apiInput?.value || '').trim().replace(/\/+$/, '') || 'http://localhost:3001';
   await chrome.storage.local.set({ pulso_api_base: val });
+  updateConnIndicator(val);
   setMsg(`Conexão configurada: ${val}`, true);
 });
 
+// Botão Padrão 3001
 btnResetApi?.addEventListener('click', async () => {
   if (apiInput) apiInput.value = 'http://localhost:3001';
   await chrome.storage.local.set({ pulso_api_base: 'http://localhost:3001' });
+  updateConnIndicator('http://localhost:3001');
   setMsg('Padrão restaurado: http://localhost:3001', true);
 });
 
-btnOpenJoins?.addEventListener('click', () => {
-  chrome.tabs.create({ url: 'https://www.facebook.com/groups/joins', active: true });
+// Botão Nuvem Vercel
+btnVercelApi?.addEventListener('click', async () => {
+  const vercelUrl = 'https://postador-two.vercel.app';
+  if (apiInput) apiInput.value = vercelUrl;
+  await chrome.storage.local.set({ pulso_api_base: vercelUrl });
+  updateConnIndicator(vercelUrl);
+  setMsg('Nuvem conectada: ' + vercelUrl, true);
 });
 
-// Botão para abrir o painel na nuvem (Vercel)
-document.getElementById('openVercelPanel')?.addEventListener('click', () => {
-  chrome.tabs.create({ url: 'https://postador-two.vercel.app', active: true });
+// Abrir Painel Nuvem (Top nav external link)
+document.getElementById('openVercelPanel')?.addEventListener('click', async () => {
+  const vercelUrl = 'https://postador-two.vercel.app';
+  if (apiInput) apiInput.value = vercelUrl;
+  await chrome.storage.local.set({ pulso_api_base: vercelUrl });
+  updateConnIndicator(vercelUrl);
+  chrome.tabs.create({ url: vercelUrl, active: true });
 });
 
-// Botão para abrir o painel local (5174)
-document.getElementById('openLocalPanel')?.addEventListener('click', () => {
+// Abrir Painel Local (Top nav monitor icon)
+document.getElementById('openLocalPanel')?.addEventListener('click', async () => {
+  const localUrl = 'http://localhost:3001';
+  if (apiInput) apiInput.value = localUrl;
+  await chrome.storage.local.set({ pulso_api_base: localUrl });
+  updateConnIndicator(localUrl);
   chrome.tabs.create({ url: 'http://localhost:5174', active: true });
 });
 
+// Navegação entre abas superiores
+async function openTabRoute(route) {
+  const apiBase = await getApiBase();
+  const isCloud = apiBase.includes('vercel.app');
+  const baseWeb = isCloud ? 'https://postador-two.vercel.app' : 'http://localhost:5174';
+  chrome.tabs.create({ url: `${baseWeb}/${route}`, active: true });
+}
+
+document.getElementById('tabPostador')?.addEventListener('click', () => {
+  setMsg('Você está no Postador PRO.', true);
+});
+
+document.getElementById('tabEngajador')?.addEventListener('click', () => {
+  openTabRoute('engajador');
+});
+
+document.getElementById('tabWarmer')?.addEventListener('click', () => {
+  openTabRoute('aquecedores');
+});
+
+document.getElementById('tabLibrary')?.addEventListener('click', () => {
+  openTabRoute('biblioteca');
+});
+
+document.getElementById('tabPlans')?.addEventListener('click', () => {
+  openTabRoute('planos');
+});
+
+document.getElementById('tabAccounts')?.addEventListener('click', () => {
+  openTabRoute('configuracoes');
+});
+
+document.getElementById('btnTutorials')?.addEventListener('click', () => {
+  openTabRoute('tutoriais');
+});
+
+document.getElementById('btnSupport')?.addEventListener('click', () => {
+  openTabRoute('suporte');
+});
+
+document.getElementById('btnHelp')?.addEventListener('click', () => {
+  openTabRoute('tutoriais');
+});
+
+cardVideoTutorial?.addEventListener('click', () => {
+  openTabRoute('tutoriais');
+});
+
+// Botão Atualizar (Refresh)
+btnRefresh?.addEventListener('click', async () => {
+  setMsg('Verificando conexão com o painel...', true);
+  try {
+    const apiBase = await getApiBase();
+    const res = await fetch(`${apiBase}/api/health`, { signal: AbortSignal.timeout(4000) });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      setMsg(`✓ Conexão ativa com ${apiBase} (v${json.version || '5.80.0'})`, true);
+    } else {
+      setMsg(`Conectado, mas resposta inesperada de ${apiBase}`, false);
+    }
+  } catch (err) {
+    setMsg('Aviso: API offline ou não respondendo. Verifique se o servidor está ativo.', false);
+  }
+});
+
+// Botão Nova Campanha
+btnNewCampaign?.addEventListener('click', () => {
+  openTabRoute('postador');
+});
+
+// Sincronizar grupos do Facebook
 btnSync?.addEventListener('click', async () => {
   setMsg('Varrendo e extraindo grupos do Facebook...', true);
   if (btnSync) btnSync.disabled = true;
@@ -79,9 +203,9 @@ btnSync?.addEventListener('click', async () => {
 
     setMsg(`${count} grupos detectados via ${via}! Salvando no painel...`, true);
 
-    // Envia ao backend (Nuvem ou Local)
     try {
       const apiBase = await getApiBase();
+
       const listsRes = await fetch(`${apiBase}/api/groups/lists`);
       const listsJson = await listsRes.json();
       const lists = listsJson.data || listsJson || [];
@@ -112,7 +236,7 @@ btnSync?.addEventListener('click', async () => {
         if (syncJson.success) {
           setMsg(`✓ Sucesso! ${syncJson.data.added} novos grupos adicionados (${syncJson.data.total} no total da lista)!`, true);
         } else {
-          setMsg(`Detectados ${count} grupos, mas ocorreu erro no backend: ${syncJson.error || 'Erro'}`, false);
+          setMsg(`Detectados ${groups.length} grupos, mas ocorreu erro no backend: ${syncJson.error || 'Erro'}`, false);
         }
       }
     } catch (apiErr) {
@@ -125,22 +249,20 @@ btnSync?.addEventListener('click', async () => {
   }
 });
 
-const btnRunCampaign = document.getElementById('runCampaign');
+// Disparar Postagem
 btnRunCampaign?.addEventListener('click', async () => {
   setMsg('Consultando campanha ativa no painel...', true);
   if (btnRunCampaign) btnRunCampaign.disabled = true;
 
   try {
     const apiBase = await getApiBase();
-    // 1. Busca campanhas do backend
     let campRes = await fetch(`${apiBase}/api/campaigns`).then(r => r.json()).catch(() => null);
     const campaigns = campRes?.data || [];
     const activeCamp = campaigns.find(c => c.status === 'RUNNING') || campaigns[0];
     if (!activeCamp) {
-      throw new Error('Nenhuma campanha encontrada no painel. Abra o painel e crie uma campanha primeiro.');
+      throw new Error('Nenhuma campanha encontrada no painel. Clique em "Nova Campanha" para criar.');
     }
 
-    // 2. Busca grupos vinculados
     let itemsRes = await fetch(`${apiBase}/api/campaigns/${activeCamp.id}/items`).then(r => r.json()).catch(() => null);
     let items = itemsRes?.data || [];
     if (!items.length) {
@@ -170,7 +292,7 @@ btnRunCampaign?.addEventListener('click', async () => {
   }
 });
 
-const btnStop = document.getElementById('stopCampaign');
+// Parar Postagens
 btnStop?.addEventListener('click', async () => {
   setMsg('🛑 Interrompendo todos os disparos agora...', false);
   try {
@@ -180,4 +302,3 @@ btnStop?.addEventListener('click', async () => {
     setMsg('Parado.', false);
   }
 });
-

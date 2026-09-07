@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ListChecks,
   Search,
@@ -11,7 +12,7 @@ import {
   FolderPlus,
   RefreshCw
 } from 'lucide-react';
-import { api, GroupList } from '../core/apiService';
+import { api, GroupList, WarmerManager } from '../core/apiService';
 
 const COLOR_SWATCHES = [
   '#4F46E5', '#10B981', '#EF4444', '#F97316', '#06B6D4',
@@ -36,17 +37,52 @@ const INITIAL_GROUPS = [
 ];
 
 export default function GroupListsPage() {
+  const navigate = useNavigate();
   const [lists, setLists] = useState<GroupList[]>([]);
   const [newListName, setNewListName] = useState('');
   const [selectedColor, setSelectedColor] = useState('#4F46E5');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'ALL' | '1K' | '10K' | '50K' | '100K'>('ALL');
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'WARMER' | '1K' | '10K' | '50K' | '100K'>('ALL');
   const [onlyAdmin, setOnlyAdmin] = useState(false);
   const [sortByMembers, setSortByMembers] = useState(true);
   const [allGroups, setAllGroups] = useState<any[]>(INITIAL_GROUPS);
   const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+
+  const handleQuickCreateWarmerList = async () => {
+    setSaving(true);
+    try {
+      const warmerGroups = allGroups.filter((g) => g.source === 'AQUECEDOR');
+      const res = await api.post('/groups/lists', {
+        name: '🔥 Grupos do Aquecedor',
+        color: '#10B981',
+        platform: 'FACEBOOK'
+      });
+      const newList = res.data.data;
+      if (newList?.id) {
+        await api.post(`/groups/lists/${newList.id}/sync`, {
+          groups: warmerGroups.map((g) => ({
+            groupId: g.group_id || g.id,
+            name: g.name,
+            url: g.url,
+            memberCount: g.member_count,
+            privacy: 'PUBLIC'
+          }))
+        });
+      }
+      setFeedbackMsg(`✓ Lista "🔥 Grupos do Aquecedor" criada com ${warmerGroups.length} grupos! Abrindo Postador PRO...`);
+      setTimeout(() => {
+        navigate('/postador');
+      }, 1200);
+    } catch (e) {
+      console.error(e);
+      setFeedbackMsg('Erro ao criar lista. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     loadLists();
@@ -64,28 +100,118 @@ export default function GroupListsPage() {
 
   const loadBackendGroups = async () => {
     try {
-      const res = await api.get('/groups/lists');
-      const allLists = res.data.data || [];
-      if (allLists.length > 0) {
-        const detailsRes = await api.get(`/groups/lists/${allLists[0].id}`);
-        const dbGroups = detailsRes.data.data?.groups || [];
-        if (dbGroups.length > 0) {
-          const merged = dbGroups.map((g: any, idx: number) => ({
-            ...g,
-            avatar: INITIAL_GROUPS[idx % INITIAL_GROUPS.length]?.avatar || '👥',
-            bg: INITIAL_GROUPS[idx % INITIAL_GROUPS.length]?.bg || 'bg-slate-800 text-slate-300'
-          }));
-          setAllGroups(merged);
+      const resLists = await api.get('/groups/lists');
+      const allLists = resLists.data.data || [];
+      setLists(allLists);
+
+      // 1. Grupos processados pelo Aquecedor de Grupos (WarmerManager)
+      const warmerGroups = WarmerManager.getEnteredGroups();
+
+      // 2. Grupos do banco de dados
+      const resAll = await api.get('/groups/all').catch(() => ({ data: { data: [] } }));
+      const dbAllGroups = resAll.data.data || [];
+
+      const map = new Map<string, any>();
+
+      // Prioridade 1: Grupos do Aquecedor (onde o usuário entrou)
+      warmerGroups.forEach((g: any) => {
+        const key = (g.name || '').trim().toLowerCase();
+        if (key && !map.has(key)) {
+          map.set(key, {
+            id: g.id || `warmer_${Math.random()}`,
+            group_id: g.group_id || g.id,
+            name: g.name,
+            url: g.url || `https://www.facebook.com/groups/search/groups/?q=${encodeURIComponent(g.name)}`,
+            member_count: g.member_count || 24000,
+            is_admin: false,
+            avatar: '🔥',
+            bg: 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60',
+            source: 'AQUECEDOR',
+            status: g.status || 'Entrou'
+          });
         }
+      });
+
+      // Prioridade 2: Grupos do Banco
+      dbAllGroups.forEach((g: any, idx: number) => {
+        const key = (g.name || '').trim().toLowerCase();
+        if (key && !map.has(key)) {
+          map.set(key, {
+            id: g.id || g.group_id,
+            group_id: g.group_id,
+            name: g.name,
+            url: g.url || `https://www.facebook.com/groups/search/groups/?q=${encodeURIComponent(g.name)}`,
+            member_count: g.member_count || 10000,
+            is_admin: g.privacy === 'ADMIN',
+            avatar: INITIAL_GROUPS[idx % INITIAL_GROUPS.length]?.avatar || '👥',
+            bg: INITIAL_GROUPS[idx % INITIAL_GROUPS.length]?.bg || 'bg-slate-800 text-slate-300',
+            source: 'BANCO'
+          });
+        }
+      });
+
+      // Prioridade 3: Grupos demonstrativos iniciais apenas se não houver nenhum grupo real
+      if (map.size === 0) {
+        INITIAL_GROUPS.forEach((g) => {
+          const key = (g.name || '').trim().toLowerCase();
+          if (key && !map.has(key)) {
+            map.set(key, { ...g, source: 'DEMO' });
+          }
+        });
       }
+
+      const merged = Array.from(map.values());
+      setAllGroups(merged);
+
+      // Grupos combinados na memória local para seleção
+      // O usuário salva explicitamente na lista desejada (ex: Grupo Pastores)
     } catch (err) {
-      console.warn('Usando lista demonstrativa', err);
+      console.warn('Erro ao carregar grupos:', err);
     }
   };
+
+  // Busca on-demand caso o usuário digite um termo novo (ex: "Pastores") que ainda não está na memória local
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 3) return;
+    const hasMatch = allGroups.some((g) => g.name.toLowerCase().includes(q.toLowerCase()));
+    if (!hasMatch && !loadingSearch) {
+      setLoadingSearch(true);
+      api.get(`/groups/search-public?q=${encodeURIComponent(q)}&quantity=100`)
+        .then((res) => {
+          const fetched = res.data.data?.groups || [];
+          if (fetched.length > 0) {
+            setAllGroups((prev) => {
+              const prevKeys = new Set(prev.map((p) => p.name.toLowerCase()));
+              const newItems = fetched
+                .filter((f: any) => !prevKeys.has(f.name.toLowerCase()))
+                .map((f: any) => ({
+                  id: f.id,
+                  group_id: f.id,
+                  name: f.name,
+                  url: f.url,
+                  member_count: f.memberCount || 20000,
+                  is_admin: false,
+                  avatar: '🔥',
+                  bg: 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/60',
+                  source: 'AQUECEDOR',
+                  status: 'Entrou'
+                }));
+              return [...newItems, ...prev];
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingSearch(false));
+    }
+  }, [searchQuery, allGroups, loadingSearch]);
+
+  const warmerCount = allGroups.filter((g) => g.source === 'AQUECEDOR').length;
 
   const filteredGroups = allGroups.filter((g) => {
     const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
+    if (activeFilter === 'WARMER' && g.source !== 'AQUECEDOR') return false;
     const count = Number(g.member_count) || 0;
     if (activeFilter === '1K' && count < 1000) return false;
     if (activeFilter === '10K' && count < 10000) return false;
@@ -216,13 +342,55 @@ export default function GroupListsPage() {
 
         <div className="flex items-center gap-2 overflow-x-auto pb-1 select-none">
           <button type="button" onClick={() => setActiveFilter('ALL')} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${activeFilter === 'ALL' ? 'bg-[#4f46e5] text-white shadow-xs' : 'bg-white dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}>Todos</button>
+          {warmerCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter(activeFilter === 'WARMER' ? 'ALL' : 'WARMER')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 ${
+                activeFilter === 'WARMER'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
+              }`}
+            >
+              <span>🔥 Grupos do Aquecedor ({warmerCount})</span>
+            </button>
+          )}
           <button type="button" onClick={() => setActiveFilter('1K')} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${activeFilter === '1K' ? 'bg-[#4f46e5] text-white shadow-xs' : 'bg-white dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}>≥ 1.000</button>
           <button type="button" onClick={() => setActiveFilter('10K')} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${activeFilter === '10K' ? 'bg-[#4f46e5] text-white shadow-xs' : 'bg-white dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}>≥ 10.000</button>
           <button type="button" onClick={() => setActiveFilter('50K')} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${activeFilter === '50K' ? 'bg-[#4f46e5] text-white shadow-xs' : 'bg-white dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}>≥ 50.000</button>
           <button type="button" onClick={() => setActiveFilter('100K')} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${activeFilter === '100K' ? 'bg-[#4f46e5] text-white shadow-xs' : 'bg-white dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}>≥ 100.000</button>
           <button type="button" onClick={() => setOnlyAdmin(!onlyAdmin)} className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 ${onlyAdmin ? 'bg-[#4f46e5] text-white shadow-xs' : 'bg-white dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}><Shield className="w-3.5 h-3.5" /> <span>Só admin</span></button>
-          <button type="button" onClick={() => setSortByMembers(!sortByMembers)} className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 ${sortByMembers ? 'bg-[#4f46e5] text-white shadow-xs' : 'bg-white dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}><ArrowDown className="w-3.5 h-3.5" /> <span>Membros</span></button>
         </div>
+
+        {activeFilter === 'WARMER' && (
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                <span>🔥 {warmerCount} grupos do Aquecedor</span>
+              </div>
+              <p className="text-slate-400 text-[11px]">
+                Grupos onde o robô entrou com sucesso. Crie a lista agora para disparar mensagens neles pelo Postador PRO.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-xs cursor-pointer"
+              >
+                Marcar todos ({warmerCount})
+              </button>
+              <button
+                type="button"
+                onClick={handleQuickCreateWarmerList}
+                disabled={saving}
+                className="px-4 py-2 rounded-xl bg-[#5b5bd6] hover:bg-[#4e4ecb] text-white font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <span>🚀 Salvar Lista e Abrir Postador</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-1 border-b border-slate-100 dark:border-slate-800/60 pb-3">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{selectedGroupIds.size} selecionado(s)</span>
@@ -234,7 +402,9 @@ export default function GroupListsPage() {
 
         <div className="divide-y divide-slate-100 dark:divide-slate-800/60 max-h-[420px] overflow-y-auto pr-1">
           {filteredGroups.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400">Nenhum grupo encontrado com os filtros selecionados.</div>
+            <div className="py-12 text-center text-xs text-slate-400">
+              {loadingSearch ? 'Buscando grupos no Facebook...' : 'Nenhum grupo encontrado com os filtros selecionados.'}
+            </div>
           ) : (
             filteredGroups.map((g) => {
               const isChecked = selectedGroupIds.has(g.id);
@@ -245,11 +415,27 @@ export default function GroupListsPage() {
                       {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                     </div>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 ${g.bg || 'bg-slate-800 text-slate-200'}`}><span>{g.avatar || '👥'}</span></div>
-                    <span className="font-semibold text-xs text-slate-800 dark:text-slate-100 truncate">{g.name}</span>
+                    <div className="flex items-center gap-2 min-w-0 truncate">
+                      <span className="font-semibold text-xs text-slate-800 dark:text-slate-100 truncate">{g.name}</span>
+                      {g.source === 'AQUECEDOR' && (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold shrink-0">
+                          🔥 Entrou
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2.5 shrink-0">
                     <span className="text-xs text-slate-400 font-mono">{Number(g.member_count || 10000).toLocaleString('pt-BR')}</span>
-                    <a href={g.url || `https://facebook.com/groups/${g.group_id || g.id}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="p-1 text-blue-500 hover:text-blue-400 transition-colors" title="Abrir no Facebook"><ExternalLink className="w-3.5 h-3.5" /></a>
+                    <a
+                      href={g.url?.startsWith('https://www.facebook.com') ? g.url : `https://www.facebook.com/groups/search/groups/?q=${encodeURIComponent(g.name)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1 text-blue-500 hover:text-blue-400 transition-colors"
+                      title="Abrir no Facebook"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
                   </div>
                 </div>
               );

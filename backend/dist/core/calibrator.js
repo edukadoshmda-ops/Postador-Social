@@ -21,23 +21,23 @@ exports.DEFAULT_CALIBRATION = {
     safeWindowEndHour: 22,
 };
 const HUMAN_PATTERNS = {
-    conservador: { longPauseEvery: 5, longPauseDuration: [8, 15] },
-    moderado: { longPauseEvery: 8, longPauseDuration: [10, 18] },
-    agressivo: { longPauseEvery: 12, longPauseDuration: [5, 10] },
+    conservador: { longPauseEvery: 10, longPauseDuration: [2, 4] },
+    moderado: { longPauseEvery: 15, longPauseDuration: [1, 3] },
+    agressivo: { longPauseEvery: 20, longPauseDuration: [1, 2] },
 };
 function calculateNextDelay(settings = {}) {
     const cfg = { ...exports.DEFAULT_CALIBRATION, ...settings };
     const base = Math.floor(Math.random() * (cfg.maxDelaySeconds - cfg.minDelaySeconds + 1)) + cfg.minDelaySeconds;
     const jitter = Math.floor(Math.random() * (cfg.randomJitterSeconds * 2 + 1)) - cfg.randomJitterSeconds;
-    let delay = Math.max(20, base + jitter);
+    let delay = Math.max(15, base + jitter);
     // variação extra para quebrar padrões perfeitos detectáveis pela Meta
     if (cfg.variationalDelay) {
-        const variance = Math.floor(Math.random() * 31) - 15; // -15 a +15s
-        delay = Math.max(20, delay + variance);
+        const variance = Math.floor(Math.random() * 21) - 10; // -10 a +10s
+        delay = Math.max(15, delay + variance);
     }
-    // padrão humano: 5% de chance de delay extra longo (simula distração)
-    if (Math.random() < 0.05) {
-        delay += Math.floor(Math.random() * 40) + 20;
+    // padrão humano: 3% de chance de delay extra leve
+    if (Math.random() < 0.03) {
+        delay += Math.floor(Math.random() * 20) + 10;
     }
     return delay;
 }
@@ -53,9 +53,13 @@ function shouldTakeLongPause(currentPostIndex, settings = {}) {
 }
 function getLongPauseDuration(settings = {}) {
     const cfg = { ...exports.DEFAULT_CALIBRATION, ...settings };
+    if (cfg.pauseDurationMinutes && cfg.pauseDurationMinutes > 0) {
+        // Se o usuário configurou explicitamente os minutos de pausa, respeita com teto seguro
+        return Math.min(cfg.pauseDurationMinutes, 5) * 60;
+    }
     const pattern = HUMAN_PATTERNS[cfg.humanPattern || 'moderado'];
     const [min, max] = pattern.longPauseDuration;
-    // retorna em segundos
+    // retorna em segundos (1 a 3 minutos)
     const minutes = Math.floor(Math.random() * (max - min + 1)) + min;
     return minutes * 60;
 }

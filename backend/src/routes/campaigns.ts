@@ -427,6 +427,15 @@ campaignsRouter.post('/:id/stop', (req: Request, res: Response) => {
   }
 });
 
+campaignsRouter.post('/:id/step', (req: Request, res: Response) => {
+  try {
+    const result = CampaignRunner.triggerNextImmediate(req.params.id);
+    return sendSuccess(res, result);
+  } catch (error: any) {
+    return sendError(res, error.message);
+  }
+});
+
 campaignsRouter.get('/:id/schedule', (req: Request, res: Response) => {
   try {
     const c = db.prepare('SELECT * FROM campaigns WHERE id = ?').get(req.params.id) as any;

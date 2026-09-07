@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Send,
@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import clsx from 'clsx';
+import { WarmerManager } from './apiService';
 
 interface BaseLayoutProps {
   children: React.ReactNode;
@@ -37,6 +38,14 @@ export default function BaseLayout({ children }: BaseLayoutProps) {
     }
   });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isWarmerActive, setIsWarmerActive] = useState(() => WarmerManager.getState().isGroupsRunning);
+
+  useEffect(() => {
+    const unsub = WarmerManager.subscribe((st) => {
+      setIsWarmerActive(st.isGroupsRunning);
+    });
+    return unsub;
+  }, []);
 
   const handleThemeChange = (newTheme: 'dark' | 'light' | 'system') => {
     setTheme(newTheme);
@@ -126,6 +135,12 @@ export default function BaseLayout({ children }: BaseLayoutProps) {
                   )}
                 />
                 <span className="flex-1 truncate">{item.label}</span>
+                {item.to === '/aquecedores' && isWarmerActive && (
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>Ativo</span>
+                  </span>
+                )}
               </NavLink>
             );
           })}

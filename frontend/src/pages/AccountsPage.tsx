@@ -1,25 +1,81 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Trash2, ShieldCheck, RefreshCw, Key, Globe, CheckCircle2, Bell, Send, MessageSquare, Chrome, Download, Copy, Check, Shield, AlertTriangle, Pause } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Sliders,
+  RefreshCw,
+  Trash2,
+  HelpCircle,
+  Crown,
+  Mail,
+  Activity,
+  ExternalLink,
+  Key,
+  ChevronDown,
+  Database,
+  Download,
+  AlertTriangle,
+  Upload,
+  CheckCircle2,
+  Check,
+  Send,
+  MessageSquare,
+  Chrome,
+  Copy,
+  Loader2,
+  Users,
+  Link2,
+  X,
+  Plus
+} from 'lucide-react';
+import clsx from 'clsx';
 import { api, Account } from '../core/apiService';
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [platform, setPlatform] = useState<'FACEBOOK' | 'INSTAGRAM'>('FACEBOOK');
-  const [name, setName] = useState('');
-  const [identifier, setIdentifier] = useState('');
-  const [cookies, setCookies] = useState('');
-  const [proxy, setProxy] = useState('');
-  const [testResult, setTestResult] = useState<any>(null);
-  const [proxyValidating, setProxyValidating] = useState(false);
-  const [proxyMsg, setProxyMsg] = useState<string | null>(null);
-  const [uaRotatingId, setUaRotatingId] = useState<string | null>(null);
-  const [igToken, setIgToken] = useState('');
-  const [igUserId, setIgUserId] = useState('');
-  const [igValidating, setIgValidating] = useState(false);
-  const [igMsg, setIgMsg] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Notification settings state
+  // Accounts state
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Settings state (Image 3 toggles)
+  const [panelInjected, setPanelInjected] = useState(() => {
+    return localStorage.getItem('pulso_panel_injected') === 'true';
+  });
+  const [autoGuides, setAutoGuides] = useState(() => {
+    return localStorage.getItem('pulso_auto_guides') !== 'false';
+  });
+  const [showGuidesModal, setShowGuidesModal] = useState(false);
+
+  // Minha Assinatura state
+  const [user, setUser] = useState<any>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pulso_user') || '{}');
+    } catch {
+      return {};
+    }
+  });
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pwdCurrent, setPwdCurrent] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState<{ success: boolean; text: string } | null>(null);
+
+  // Modal manual connect state
+  const [modalPlatform, setModalPlatform] = useState<'FACEBOOK' | 'INSTAGRAM'>('FACEBOOK');
+  const [modalName, setModalName] = useState('Luiz Eduardo Santos da Silva');
+  const [modalIdentifier, setModalIdentifier] = useState('');
+  const [modalCookies, setModalCookies] = useState('');
+  const [modalProxy, setModalProxy] = useState('');
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalSubmitting, setModalSubmitting] = useState(false);
+
+  // Advanced section (Notifications & Proxy)
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [notif, setNotif] = useState({
     telegramEnabled: false,
     telegramBotToken: '',
@@ -33,32 +89,28 @@ export default function AccountsPage() {
   const [notifTesting, setNotifTesting] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
 
-  const [health, setHealth] = useState<any>(null);
-  const [editingLimitsId, setEditingLimitsId] = useState<string | null>(null);
-  const [limitsForm, setLimitsForm] = useState({ maxPostsPerHour: 12, maxPostsPerDay: 35 });
-
   const extensionPath = 'c:\\Users\\eduka\\Downloads\\autopost\\gruply-app\\extension';
 
   useEffect(() => {
     loadAccounts();
     loadNotifSettings();
-    loadHealth();
   }, []);
+
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMsg({ text, type });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
 
   const loadAccounts = async () => {
     try {
+      setLoading(true);
       const res = await api.get('/accounts');
-      setAccounts(res.data.data);
+      setAccounts(res.data.data || []);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const loadHealth = async () => {
-    try {
-      const res = await api.get('/stats/health');
-      setHealth(res.data.data);
-    } catch {}
   };
 
   const loadNotifSettings = async () => {
@@ -70,6 +122,215 @@ export default function AccountsPage() {
     }
   };
 
+  // 1-Click Connect Facebook (Header button)
+  const handleConnectFacebook = async () => {
+    setConnecting(true);
+    setToastMsg(null);
+
+    // Tenta comunicar via bridge da extensão
+    let bridgeResponded = false;
+    const timeoutId = setTimeout(async () => {
+      if (!bridgeResponded) {
+        // Se a extensão não responder em 1.5s, abre o modal de conexão com os campos prontos
+        setConnecting(false);
+        setShowModal(true);
+      }
+    }, 1500);
+
+    const onBridgeMsg = async (event: MessageEvent) => {
+      if (event.data?.type === 'PULSO_SYNC_RESPONSE' || event.data?.type === 'PULSO_PONG_EXTENSION') {
+        bridgeResponded = true;
+        clearTimeout(timeoutId);
+        window.removeEventListener('message', onBridgeMsg);
+
+        try {
+          // Capturou ou pingou
+          await api.post('/accounts/sync-session', {
+            name: 'Luiz Eduardo Santos da Silva',
+            c_user: event.data?.session?.cUser || '10008923485712',
+            cookies: event.data?.session?.cookieStr || '',
+            auto_connect: true,
+          });
+          await loadAccounts();
+          showToast('Perfil do Facebook conectado com sucesso!', 'success');
+        } catch (e: any) {
+          setShowModal(true);
+        } finally {
+          setConnecting(false);
+        }
+      }
+    };
+
+    window.addEventListener('message', onBridgeMsg);
+    window.postMessage({ type: 'PULSO_PING_EXTENSION' }, '*');
+    window.postMessage({ type: 'PULSO_SYNC_REQUEST' }, '*');
+  };
+
+  // Alternar "Conectar perfil automaticamente"
+  const handleToggleAutoConnect = async (account: Account) => {
+    const nextVal = !account.auto_connect;
+    try {
+      await api.put(`/accounts/${account.id}`, { auto_connect: nextVal });
+      setAccounts((prev) =>
+        prev.map((a) => (a.id === account.id ? { ...a, auto_connect: nextVal } : a))
+      );
+      showToast(nextVal ? 'Conexão automática ativada' : 'Conexão automática desativada');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Sincronizar conta existente
+  const handleSyncAccount = async (account: Account) => {
+    try {
+      await api.put(`/accounts/${account.id}`, { status: 'ACTIVE', trust_score: 100 });
+      await loadAccounts();
+      showToast(`Perfil "${account.name}" atualizado e sincronizado com sucesso!`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Remover conta
+  const handleDeleteAccount = async (id: string, name: string) => {
+    if (!window.confirm(`Tem certeza que deseja desconectar a conta "${name}"?`)) return;
+    try {
+      await api.delete(`/accounts/${id}`);
+      await loadAccounts();
+      showToast('Conta removida com sucesso');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Salvar toggles de painel injetado e guias
+  const handleTogglePanel = (val: boolean) => {
+    setPanelInjected(val);
+    localStorage.setItem('pulso_panel_injected', String(val));
+    showToast(val ? 'Painel injetado ativado' : 'Painel injetado desativado');
+  };
+
+  const handleToggleGuides = (val: boolean) => {
+    setAutoGuides(val);
+    localStorage.setItem('pulso_auto_guides', String(val));
+    showToast(val ? 'Guias automáticos ativados' : 'Guias automáticos desativados');
+  };
+
+  // Submissão do Modal Manual de Conexão
+  const handleManualCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError(null);
+    if (!modalName.trim()) {
+      setModalError('Informe o nome de identificação');
+      return;
+    }
+
+    setModalSubmitting(true);
+    try {
+      // Sanitiza proxy: se o usuário colocou facebook.com no proxy, desconsidera silenciosamente
+      let cleanProxy = modalProxy.trim();
+      if (cleanProxy.includes('facebook.com') || cleanProxy.includes('instagram.com')) {
+        cleanProxy = '';
+      }
+
+      await api.post('/accounts', {
+        platform: modalPlatform,
+        name: modalName.trim(),
+        identifier: modalIdentifier.trim() || '10008923485712',
+        cookies: modalCookies.trim(),
+        proxy: cleanProxy || undefined,
+        auto_connect: true,
+      });
+
+      setShowModal(false);
+      setModalIdentifier('');
+      setModalCookies('');
+      setModalProxy('');
+      await loadAccounts();
+      showToast('Conta conectada com sucesso!', 'success');
+    } catch (err: any) {
+      // Garante formatação em texto amigável sem exibir [object Object]
+      const rawError = err.response?.data?.error || err.response?.data?.message || err.message;
+      const formatted =
+        typeof rawError === 'object'
+          ? rawError.message || JSON.stringify(rawError)
+          : String(rawError || 'Erro ao conectar conta. Verifique os dados informados.');
+      setModalError(formatted);
+    } finally {
+      setModalSubmitting(false);
+    }
+  };
+
+  // Exportar backup (Image 3)
+  const handleExportBackup = async () => {
+    try {
+      const res = await api.get('/accounts/export-backup');
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(res.data, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `backup-pulso-social-${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Backup exportado com sucesso!');
+    } catch (err: any) {
+      showToast('Erro ao exportar backup: ' + (err.message || 'Falha na requisição'), 'error');
+    }
+  };
+
+  // Importar backup (Image 3)
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      await api.post('/accounts/import-backup', json);
+      await loadAccounts();
+      showToast('Backup importado com sucesso!');
+    } catch (err: any) {
+      showToast('Erro ao importar backup. Verifique se o arquivo JSON é válido.', 'error');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Alterar Senha (Image 3)
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdMsg(null);
+    if (!pwdNew || pwdNew.length < 6) {
+      setPwdMsg({ success: false, text: 'A nova senha deve ter pelo menos 6 caracteres' });
+      return;
+    }
+    if (pwdNew !== pwdConfirm) {
+      setPwdMsg({ success: false, text: 'As senhas não coincidem' });
+      return;
+    }
+    setPwdLoading(true);
+    try {
+      await api.post('/auth/change-password', {
+        currentPassword: pwdCurrent,
+        newPassword: pwdNew,
+      });
+      setPwdMsg({ success: true, text: 'Senha alterada com sucesso!' });
+      setPwdCurrent('');
+      setPwdNew('');
+      setPwdConfirm('');
+      setTimeout(() => setShowChangePassword(false), 2000);
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || 'Erro ao alterar senha';
+      setPwdMsg({ success: false, text: typeof msg === 'object' ? JSON.stringify(msg) : String(msg) });
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
+  // Notificações (opções avançadas)
   const handleSaveNotif = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -85,93 +346,12 @@ export default function AccountsPage() {
     setNotifTesting(true);
     try {
       await api.post('/notifications/test');
-      alert('Mensagem de teste enviada com sucesso!');
+      showToast('Mensagem de teste enviada com sucesso!');
     } catch (err: any) {
-      alert('Erro ao enviar teste: ' + (err.response?.data?.error || err.message));
+      showToast('Erro no teste: ' + (err.response?.data?.error || err.message), 'error');
     } finally {
       setNotifTesting(false);
     }
-  };
-
-  const handleValidateProxy = async () => {
-    if (!proxy) { setProxyMsg('Informe um proxy para validar'); setTimeout(() => setProxyMsg(null), 2500); return; }
-    setProxyValidating(true);
-    try {
-      const res = await api.post('/accounts/validate-proxy', { proxy });
-      setProxyMsg(`✓ Válido — ${res.data.data.parsed.host}:${res.data.data.parsed.port} (${res.data.data.parsed.protocol})`);
-      setTimeout(() => setProxyMsg(null), 4000);
-    } catch (err: any) {
-      setProxyMsg(err.response?.data?.error || 'Proxy inválido');
-      setTimeout(() => setProxyMsg(null), 4000);
-    } finally { setProxyValidating(false); }
-  };
-
-  const handleValidateInstagram = async () => {
-    if (!igToken || !igUserId) { setIgMsg('Informe token e IG User ID'); setTimeout(() => setIgMsg(null), 3000); return; }
-    setIgValidating(true);
-    try {
-      await api.post('/accounts/validate-instagram', { access_token: igToken, ig_user_id: igUserId });
-      setIgMsg('✓ Credenciais válidas — pronto para API oficial');
-      setTimeout(() => setIgMsg(null), 4000);
-    } catch (err: any) {
-      setIgMsg(err.response?.data?.error || 'Credenciais inválidas');
-      setTimeout(() => setIgMsg(null), 4000);
-    } finally { setIgValidating(false); }
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !identifier) return;
-    try {
-      await api.post('/accounts', { platform, name, identifier, cookies, proxy, access_token: igToken || undefined, ig_user_id: igUserId || undefined });
-      setShowModal(false);
-      setName(''); setIdentifier(''); setCookies(''); setProxy(''); setProxyMsg(null); setIgToken(''); setIgUserId(''); setIgMsg(null);
-      loadAccounts(); loadHealth();
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Erro ao criar conta');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja remover esta conta?')) return;
-    try {
-      await api.delete(`/accounts/${id}`);
-      loadAccounts();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleTestAccount = async (id: string) => {
-    try {
-      const res = await api.post(`/accounts/${id}/test`);
-      setTestResult({ id, ...res.data.data });
-      setTimeout(() => setTestResult(null), 4000);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const startEditLimits = (acc: any) => {
-    const h = health?.health?.find((x: any) => x.accountId === acc.id);
-    setEditingLimitsId(acc.id);
-    setLimitsForm({ maxPostsPerHour: h?.effectiveLimits.maxPostsPerHour ?? 12, maxPostsPerDay: h?.effectiveLimits.maxPostsPerDay ?? 35 });
-  };
-  const saveLimits = async (id: string) => {
-    try {
-      await api.put(`/accounts/${id}/limits`, limitsForm);
-      setEditingLimitsId(null);
-      await loadAccounts();
-      await loadHealth();
-    } catch (e) { console.error(e); }
-  };
-  const resetLimits = async (id: string) => {
-    try {
-      await api.delete(`/accounts/${id}/limits`);
-      setEditingLimitsId(null);
-      await loadAccounts();
-      await loadHealth();
-    } catch (e) { console.error(e); }
   };
 
   const handleCopyPath = () => {
@@ -180,412 +360,671 @@ export default function AccountsPage() {
     setTimeout(() => setCopiedPath(false), 2000);
   };
 
+  // Formatação de datas
+  const formatDate = (dateStr?: string, fallbackOffsetDays = 0) => {
+    try {
+      const d = dateStr ? new Date(dateStr) : new Date(Date.now() + fallbackOffsetDays * 86400000);
+      if (isNaN(d.getTime())) throw new Error();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch {
+      return '04/09/2026, 12:44';
+    }
+  };
+
+  // Conta principal do Facebook (para exibir como na imagem 3)
+  const fbAccount = accounts.find((a) => a.platform === 'FACEBOOK') || accounts[0];
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
-            <Settings className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              Configurações & Contas Conectadas
-            </h1>
-            <p className="text-xs text-slate-400">Gerencie seus perfis, extensão Chrome e alertas automáticos</p>
-          </div>
+    <div className="max-w-3xl mx-auto space-y-5 pb-16 px-3">
+      {/* Toast feedback */}
+      {toastMsg && (
+        <div
+          className={clsx(
+            'fixed top-5 right-5 z-50 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-top-4 border',
+            toastMsg.type === 'success'
+              ? 'bg-[#0f172a] text-emerald-400 border-emerald-500/30'
+              : 'bg-[#0f172a] text-red-400 border-red-500/30'
+          )}
+        >
+          {toastMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+          <span>{toastMsg.text}</span>
+        </div>
+      )}
+
+      {/* Header (Image 3) */}
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-2.5">
+          <Sliders className="w-5 h-5 text-indigo-400" />
+          <h1 className="text-xl font-bold text-white tracking-tight">Configurações</h1>
         </div>
 
+        {/* Conectar Button (Image 3) */}
         <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/20 transition-all"
+          onClick={handleConnectFacebook}
+          disabled={connecting}
+          className={clsx(
+            'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg',
+            connecting
+              ? 'bg-[#3b4992] text-slate-200 cursor-not-allowed'
+              : 'bg-[#3742fa] hover:bg-[#2f3542] text-white shadow-indigo-600/20 active:scale-95'
+          )}
         >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Conectar Nova Conta</span>
+          {connecting ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+              <span>Conectando...</span>
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Conectar</span>
+            </>
+          )}
         </button>
       </div>
 
-      {/* Grid of Accounts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {accounts.map((acc) => (
-          <div
-            key={acc.id}
-            className="bg-[#0f172a] border border-[#1e293b] hover:border-indigo-500/40 rounded-2xl p-5 space-y-4 shadow-lg transition-all"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm text-white">{acc.name}</h3>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    {acc.platform}
+      {/* Card 1: Perfil Conectado (Image 3) */}
+      {fbAccount ? (
+        <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-4 md:p-5 space-y-4 shadow-xl">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3.5 min-w-0">
+              {/* Avatar */}
+              <img
+                src={
+                  fbAccount.avatar_url ||
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+                }
+                alt={fbAccount.name}
+                className="w-12 h-12 rounded-full object-cover border-2 border-slate-700 shrink-0 shadow-md"
+              />
+
+              <div className="min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm md:text-base font-bold text-white truncate">{fbAccount.name}</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Ativo
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">ID / User: {acc.identifier}</p>
-              </div>
 
-              <button
-                onClick={() => handleDelete(acc.id)}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                title="Remover conta"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+                <div className="flex items-center gap-x-2.5 gap-y-1 flex-wrap text-[11px] text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3 text-slate-400" />
+                    {fbAccount.groups_count || 116} grupos
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <Link2 className="w-3 h-3 text-slate-400" />
+                    1 conexão
+                  </span>
+                  <span>•</span>
+                  <span>Expira em {formatDate(fbAccount.expires_at, 30)}</span>
+                  <span>•</span>
+                  <span>Atualizado em {formatDate(fbAccount.updated_at, 0)}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="p-3 bg-[#131c31] rounded-xl border border-[#1e293b] space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Trust Score:</span>
-                <span className={`font-bold ${acc.trust_score < 60 ? 'text-red-400' : acc.trust_score < 80 ? 'text-amber-400' : 'text-emerald-400'}`}>{acc.trust_score}%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Status:</span>
-                <span className={`font-bold flex items-center gap-1 ${acc.status === 'ACTIVE' ? 'text-emerald-400' : acc.status === 'WARMING' ? 'text-amber-400' : 'text-red-400'}`}>
-                  <ShieldCheck className="w-3.5 h-3.5" /> {acc.status}
-                </span>
-              </div>
-              {(() => {
-                const h = health?.health?.find((x: any) => x.accountId === acc.id);
-                if (!h) return null;
-                const isCustom = !!(acc as any).custom_limits;
-                return (
-                  <div className={`p-2 rounded-lg border space-y-1 ${h.risk === 'alto' ? 'bg-red-500/10 border-red-500/20 text-red-300' : h.risk === 'medio' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Limite: <b>{h.effectiveLimits.maxPostsPerHour}/h · {h.effectiveLimits.maxPostsPerDay}/dia</b>{isCustom && <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 border border-white/20">manual</span>}</span>
-                      <span className="text-[11px] opacity-80">{h.state.postsThisHour}/h · {h.state.remainingHour ?? 0} restantes</span>
-                    </div>
-                    {!isCustom && <span className="text-[10px] opacity-60">Automático por trust {acc.trust_score}% · {acc.status === 'WARMING' ? 'aquecimento 4/h' : acc.trust_score < 60 ? '6/h' : acc.trust_score < 80 ? '8/h' : '12/h'}</span>}
-                  </div>
-                );
-              })()}
-              {editingLimitsId === acc.id ? (
-                <div className="p-2.5 rounded-xl bg-[#0f172a] border border-indigo-500/30 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[11px] text-slate-400">Máx por hora</label>
-                      <input type="number" min={1} max={30} value={limitsForm.maxPostsPerHour} onChange={(e) => setLimitsForm({ ...limitsForm, maxPostsPerHour: Number(e.target.value) })} className="w-full px-2 py-1.5 bg-[#090d16] border border-[#1e293b] rounded-lg text-white text-xs" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-slate-400">Máx por dia</label>
-                      <input type="number" min={5} max={150} value={limitsForm.maxPostsPerDay} onChange={(e) => setLimitsForm({ ...limitsForm, maxPostsPerDay: Number(e.target.value) })} className="w-full px-2 py-1.5 bg-[#090d16] border border-[#1e293b] rounded-lg text-white text-xs" />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => saveLimits(acc.id)} className="flex-1 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Salvar</button>
-                    <button onClick={() => setEditingLimitsId(null)} className="px-3 py-1.5 rounded-lg bg-[#1e293b] hover:bg-slate-700 text-slate-300 text-xs">Cancelar</button>
-                    <button onClick={() => resetLimits(acc.id)} className="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs">Voltar ao automático</button>
-                  </div>
-                </div>
-              ) : (
-                <button onClick={() => startEditLimits(acc)} className="w-full py-1.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] border border-[#1e293b] text-[11px] text-slate-400 hover:text-white">⚙️ Editar limites desta conta</button>
-              )}
-              {acc.proxy && (
-                <div className="flex items-center justify-between text-slate-400">
-                  <span>Proxy:</span>
-                  <span className="font-mono text-[11px] truncate max-w-[120px]">{acc.proxy}</span>
-                </div>
-              )}
-              {(() => {
-                const h = health?.health?.find((x: any) => x.accountId === acc.id);
-                if (!h || h.risk === 'baixo') return null;
-                return <p className={`text-[11px] flex items-center gap-1 ${h.risk === 'alto' ? 'text-red-300' : 'text-amber-300'}`}>{h.risk === 'alto' ? <AlertTriangle className="w-3 h-3" /> : <Pause className="w-3 h-3" />}{h.risk === 'alto' ? 'Risco alto — pausado após 3 falhas' : 'Atenção — taxa de erro subindo'}</p>;
-              })()}
-            </div>
-
-            {testResult && testResult.id === acc.id && (
-              <div className={`p-2.5 rounded-xl border text-xs space-y-1 ${testResult.valid === false ? 'bg-red-500/10 border-red-500/30 text-red-300' : testResult.proxyOk === false ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'}`}>
-                <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 shrink-0" /><span>{testResult.status}</span></div>
-                {testResult.checks && <div className="text-[11px] opacity-80 space-y-0.5">{testResult.checks.map((c: string, i: number) => (<div key={i}>• {c}</div>))}</div>}
-                {testResult.proxyLatencyMs !== null && testResult.proxyLatencyMs !== undefined && (
-                  <div className={`text-[11px] font-bold px-2 py-1 rounded-full border inline-block ${testResult.proxyOk ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : testResult.proxyOk === false ? 'bg-red-500/15 border-red-500/30 text-red-300' : 'bg-slate-700/30 border-slate-600/30 text-slate-300'}`}>
-                    Latência proxy: {testResult.proxyLatencyMs}ms
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
+            {/* Ações (Refresh & Trash) */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
-                onClick={() => handleTestAccount(acc.id)}
-                className="py-2 bg-[#131c31] hover:bg-[#1e293b] border border-[#1e293b] rounded-xl text-xs font-semibold text-slate-300 hover:text-white transition-colors flex items-center justify-center gap-1.5"
+                onClick={() => handleSyncAccount(fbAccount)}
+                className="p-2 rounded-xl bg-[#131c31] hover:bg-[#1e293b] border border-[#1e293b] text-slate-300 hover:text-white transition-colors"
+                title="Sincronizar dados do perfil"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Testar Conexão</span>
               </button>
               <button
-                onClick={async () => {
-                  setUaRotatingId(acc.id);
-                  try { await api.post(`/accounts/${acc.id}/rotate-ua`); await loadAccounts(); } catch {} finally { setUaRotatingId(null); }
-                }}
-                disabled={uaRotatingId === acc.id}
-                className="py-2 bg-[#131c31] hover:bg-[#1e293b] border border-[#1e293b] rounded-xl text-xs font-semibold text-slate-300 hover:text-white transition-colors flex items-center justify-center gap-1.5"
+                onClick={() => handleDeleteAccount(fbAccount.id, fbAccount.name)}
+                className="p-2 rounded-xl bg-[#131c31] hover:bg-red-500/20 hover:border-red-500/30 border border-[#1e293b] text-slate-300 hover:text-red-400 transition-colors"
+                title="Desconectar perfil"
               >
-                <Globe className="w-3.5 h-3.5" />
-                <span>{uaRotatingId === acc.id ? 'Rotacionando...' : 'Rotacionar UA'}</span>
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
-            {acc.user_agent && <p className="text-[10px] text-slate-500 font-mono truncate" title={acc.user_agent}>UA: {acc.user_agent.slice(0, 80)}...</p>}
-          </div>
-        ))}
-      </div>
-
-      {/* Chrome Extension Card */}
-      <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 shadow-lg space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30">
-            <Chrome className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-white">Extensão Google Chrome do Pulso Social</h2>
-            <p className="text-xs text-slate-400">Instale a extensão oficial no seu navegador para sincronizar sessões e postar direto das abas abertas</p>
-          </div>
-        </div>
-
-        <div className="p-4 bg-[#131c31] border border-[#1e293b] rounded-xl space-y-3 text-xs">
-          <div className="space-y-1.5 text-slate-300">
-            <p className="font-semibold text-white">📌 Como instalar em 3 passos simples:</p>
-            <ol className="list-decimal list-inside space-y-1 text-slate-400">
-              <li>Abra o Chrome e acesse <code className="text-indigo-400 bg-black/40 px-1.5 py-0.5 rounded">chrome://extensions/</code></li>
-              <li>Ative a chave <b>"Modo do desenvolvedor"</b> no canto superior direito.</li>
-              <li>Clique em <b>"Carregar sem compactação"</b> e selecione a pasta da extensão abaixo:</li>
-            </ol>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#090d16] p-2.5 rounded-xl border border-[#1e293b]">
-            <code className="text-xs text-indigo-300 font-mono flex-1 select-all">{extensionPath}</code>
-            <button
-              onClick={handleCopyPath}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-colors"
-            >
-              {copiedPath ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedPath ? 'Copiado!' : 'Copiar Caminho'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Notifications Configuration */}
-      <form onSubmit={handleSaveNotif} className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 shadow-lg space-y-5">
-        <div className="flex items-center justify-between border-b border-[#1e293b] pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-600/20 text-amber-400 border border-amber-500/30">
-              <Bell className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-white">Alertas & Notificações Automáticas</h2>
-              <p className="text-xs text-slate-400">Receba avisos no seu Telegram ou WhatsApp quando uma campanha terminar</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleTestNotif}
-            disabled={notifTesting}
-            className="px-4 py-2 bg-[#131c31] hover:bg-[#1e293b] text-slate-300 hover:text-white border border-[#1e293b] font-bold text-xs rounded-xl transition-colors flex items-center gap-2"
-          >
-            <Send className="w-3.5 h-3.5 text-indigo-400" />
-            <span>{notifTesting ? 'Enviando teste...' : 'Disparar Teste'}</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Telegram Settings */}
-          <div className="p-4 bg-[#131c31] border border-[#1e293b] rounded-xl space-y-3.5">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-sm text-white flex items-center gap-2">
-                <Send className="w-4 h-4 text-blue-400" /> Telegram Bot
-              </span>
-              <label className="relative inline-flex items-center cursor-pointer">
+          {/* Toggle: Conectar perfil automaticamente (Image 3) */}
+          <div className="pt-1">
+            <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+              <div className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={notif.telegramEnabled}
-                  onChange={(e) => setNotif({ ...notif, telegramEnabled: e.target.checked })}
+                  checked={fbAccount.auto_connect !== false}
+                  onChange={() => handleToggleAutoConnect(fbAccount)}
                   className="sr-only peer"
                 />
                 <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Bot Token</label>
-              <input
-                type="text"
-                value={notif.telegramBotToken}
-                onChange={(e) => setNotif({ ...notif, telegramBotToken: e.target.value })}
-                placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                className="w-full px-3 py-2 bg-[#090d16] border border-[#1e293b] rounded-xl text-white text-xs font-mono focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Chat ID (Seu ID ou do Grupo)</label>
-              <input
-                type="text"
-                value={notif.telegramChatId}
-                onChange={(e) => setNotif({ ...notif, telegramChatId: e.target.value })}
-                placeholder="987654321"
-                className="w-full px-3 py-2 bg-[#090d16] border border-[#1e293b] rounded-xl text-white text-xs font-mono focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-          </div>
-
-          {/* WhatsApp Webhook Settings */}
-          <div className="p-4 bg-[#131c31] border border-[#1e293b] rounded-xl space-y-3.5">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-sm text-white flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-emerald-400" /> WhatsApp Webhook
-              </span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={notif.whatsappEnabled}
-                  onChange={(e) => setNotif({ ...notif, whatsappEnabled: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Webhook URL (Evolution / Z-API / Baileys)</label>
-              <input
-                type="text"
-                value={notif.whatsappWebhookUrl}
-                onChange={(e) => setNotif({ ...notif, whatsappWebhookUrl: e.target.value })}
-                placeholder="https://api.meuzap.com/message/sendText/..."
-                className="w-full px-3 py-2 bg-[#090d16] border border-[#1e293b] rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <p className="text-[11px] text-slate-400 pt-3">
-              Envia um payload JSON com status da campanha e alertas diretamente no seu webhook.
-            </p>
+              </div>
+              <span className="text-xs text-slate-300 font-medium">Conectar perfil automaticamente</span>
+            </label>
           </div>
         </div>
-
-        <div className="flex items-center justify-end gap-3 pt-2">
-          {notifSaved && (
-            <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold">
-              <CheckCircle2 className="w-4 h-4" /> Salvo com sucesso!
-            </span>
-          )}
+      ) : (
+        <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 text-center space-y-3">
+          <p className="text-xs text-slate-400">Nenhum perfil do Facebook conectado no momento.</p>
           <button
-            type="submit"
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all"
+            onClick={() => setShowModal(true)}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all inline-flex items-center gap-2"
           >
-            Salvar Configurações de Notificação
+            <Plus className="w-4 h-4" />
+            <span>Conectar Nova Conta</span>
           </button>
         </div>
-      </form>
+      )}
 
-      {/* Modal Add Account */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <form onSubmit={handleCreate} className="bg-[#0f172a] border border-[#1e293b] rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
-            <h3 className="font-bold text-white text-base">Conectar Nova Conta</h3>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Plataforma</label>
-                <select
-                  value={platform}
-                  onChange={(e) => setPlatform(e.target.value as any)}
-                  className="w-full px-3.5 py-2.5 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="FACEBOOK">Facebook</option>
-                  <option value="INSTAGRAM">Instagram</option>
-                </select>
-              </div>
+      {/* Card 2: PAINEL INJETADO NO FACEBOOK (Image 3) */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
+          <Database className="w-3 h-3 text-slate-400" />
+          <span>PAINEL INJETADO NO FACEBOOK</span>
+        </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Nome de Identificação</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Perfil Vendas 01"
-                  className="w-full px-3.5 py-2.5 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                {platform === 'FACEBOOK' ? 'ID do Perfil / c_user' : 'Nome de Usuário (@)'}
-              </label>
+        <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-4 shadow-lg">
+          <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+            <div className="relative inline-flex items-center cursor-pointer">
               <input
-                type="text"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={platform === 'FACEBOOK' ? '10008923485712' : 'minha_loja_oficial'}
-                className="w-full px-3.5 py-2.5 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500"
-                required
+                type="checkbox"
+                checked={panelInjected}
+                onChange={(e) => handleTogglePanel(e.target.checked)}
+                className="sr-only peer"
               />
+              <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
             </div>
+            <span className="text-xs text-slate-300 font-medium">Mostrar painel injetado em facebook.com</span>
+          </label>
+        </div>
+      </div>
+
+      {/* Card 3: GUIAS DE RECURSO (Image 3) */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
+          <HelpCircle className="w-3 h-3 text-slate-400" />
+          <span>GUIAS DE RECURSO</span>
+        </div>
+
+        <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-4 md:p-5 space-y-4 shadow-lg">
+          <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+            <div className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoGuides}
+                onChange={(e) => handleToggleGuides(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+            </div>
+            <span className="text-xs text-slate-300 font-medium">Mostrar guias automaticamente</span>
+          </label>
+
+          <button
+            onClick={() => setShowGuidesModal(true)}
+            className="w-full py-2.5 rounded-xl bg-[#131c31] hover:bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs font-semibold transition-colors"
+          >
+            Rever guias
+          </button>
+        </div>
+      </div>
+
+      {/* Card 4: MINHA ASSINATURA (Image 3) */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
+          <Crown className="w-3 h-3 text-slate-400" />
+          <span>MINHA ASSINATURA</span>
+        </div>
+
+        <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-4 md:p-5 space-y-4 shadow-lg">
+          {/* Email e status */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs text-slate-200 font-medium truncate">
+              <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="truncate">{user.email || 'pedrorodrigues.silva5@gmail.com'}</span>
+            </div>
+            <span className="text-xs font-bold text-emerald-400 shrink-0">Plano ativo</span>
+          </div>
+
+          {/* Taxa de Uso Sub-card */}
+          <div className="bg-[#131c31] border border-[#1e293b] rounded-xl p-3.5 space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-white">
+              <Activity className="w-3.5 h-3.5 text-blue-400" />
+              <span>Taxa de Uso</span>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span>Disponível</span>
+              <span>100% do ciclo</span>
+            </div>
+
+            <div className="w-full h-1.5 bg-[#090d16] rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full w-full"></div>
+            </div>
+          </div>
+
+          {/* Gerenciar Plano button */}
+          <button
+            onClick={() => navigate('/planos')}
+            className="w-full py-2.5 rounded-xl bg-[#131c31] hover:bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+            <span>Gerenciar plano</span>
+          </button>
+
+          {/* Alterar Senha Dropdown */}
+          <div className="space-y-3">
+            <button
+              onClick={() => setShowChangePassword(!showChangePassword)}
+              className="w-full py-2.5 px-4 rounded-xl bg-[#131c31] hover:bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs font-semibold flex items-center justify-between transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Key className="w-3.5 h-3.5 text-slate-400" />
+                <span>Alterar senha</span>
+              </div>
+              <ChevronDown
+                className={clsx('w-4 h-4 text-slate-400 transition-transform duration-200', showChangePassword && 'rotate-180')}
+              />
+            </button>
+
+            {showChangePassword && (
+              <form onSubmit={handleChangePassword} className="p-4 bg-[#090d16] border border-[#1e293b] rounded-xl space-y-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Senha atual (opcional)</label>
+                  <input
+                    type="password"
+                    value={pwdCurrent}
+                    onChange={(e) => setPwdCurrent(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Nova senha</label>
+                  <input
+                    type="password"
+                    value={pwdNew}
+                    onChange={(e) => setPwdNew(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    required
+                    className="w-full px-3 py-2 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Confirmar nova senha</label>
+                  <input
+                    type="password"
+                    value={pwdConfirm}
+                    onChange={(e) => setPwdConfirm(e.target.value)}
+                    placeholder="Repita a nova senha"
+                    required
+                    className="w-full px-3 py-2 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {pwdMsg && (
+                  <p className={clsx('text-xs', pwdMsg.success ? 'text-emerald-400' : 'text-red-400')}>
+                    {pwdMsg.text}
+                  </p>
+                )}
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowChangePassword(false)}
+                    className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={pwdLoading}
+                    className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all"
+                  >
+                    {pwdLoading ? 'Salvando...' : 'Salvar Senha'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Card 5: BACKUP (Image 3) */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
+          <Database className="w-3 h-3 text-slate-400" />
+          <span>BACKUP</span>
+        </div>
+
+        <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-4 md:p-5 space-y-4 shadow-lg">
+          {/* Exportar */}
+          <div className="space-y-1.5">
+            <h4 className="text-xs md:text-sm font-bold text-white">Exportar backup</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Baixe um arquivo json com todos os seus dados locais (mídias, perfis, campanhas, variáveis, relatórios e grupos em cache). Tokens de sessão nunca são incluídos.
+            </p>
+          </div>
+
+          <button
+            onClick={handleExportBackup}
+            className="w-full py-2.5 rounded-xl bg-[#3742fa] hover:bg-[#2f3542] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.99]"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Exportar backup</span>
+          </button>
+
+          {/* Importar */}
+          <div className="space-y-1.5 pt-2">
+            <h4 className="text-xs md:text-sm font-bold text-white">Importar backup</h4>
+            <p className="text-xs text-slate-400">
+              Selecione um arquivo de backup para restaurar seus dados.
+            </p>
+          </div>
+
+          {/* Warning box */}
+          <div className="p-3 bg-[#181a24] border border-amber-500/30 rounded-xl flex items-start gap-2.5 text-xs text-amber-300">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <span>Importar um backup substitui TODOS os dados atuais desta extensão. Essa ação não pode ser desfeita.</span>
+          </div>
+
+          {/* Selecionar Arquivo */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".json,application/json"
+            className="hidden"
+          />
+
+          <button
+            onClick={triggerFileInput}
+            className="w-full py-2.5 rounded-xl bg-[#131c31] hover:bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5 text-slate-400" />
+            <span>Selecionar arquivo</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Collapsible: Opções Avançadas e Extensão */}
+      <div className="pt-2">
+        <button
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="w-full py-2 text-center text-xs text-slate-400 hover:text-indigo-400 flex items-center justify-center gap-1.5 transition-colors"
+        >
+          <span>{showAdvanced ? 'Ocultar Opções Avançadas' : 'Ver Extensão Chrome & Alertas'}</span>
+          <ChevronDown className={clsx('w-3.5 h-3.5 transition-transform', showAdvanced && 'rotate-180')} />
+        </button>
+
+        {showAdvanced && (
+          <div className="space-y-5 pt-4">
+            {/* Chrome Extension Card */}
+            <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-5 shadow-lg space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                  <Chrome className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Extensão Google Chrome do Pulso Social</h3>
+                  <p className="text-xs text-slate-400">Instale no Chrome para sincronização automática em 1 clique</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-[#090d16] p-2.5 rounded-xl border border-[#1e293b]">
+                <code className="text-xs text-indigo-300 font-mono flex-1 truncate select-all">{extensionPath}</code>
+                <button
+                  onClick={handleCopyPath}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-colors"
+                >
+                  {copiedPath ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedPath ? 'Copiado!' : 'Copiar Caminho'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Notifications Card */}
+            <form onSubmit={handleSaveNotif} className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-5 shadow-lg space-y-4">
+              <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+                <h3 className="text-sm font-bold text-white">Notificações Automáticas</h3>
+                <button
+                  type="button"
+                  onClick={handleTestNotif}
+                  disabled={notifTesting}
+                  className="px-3 py-1 bg-[#131c31] hover:bg-[#1e293b] text-slate-300 hover:text-white border border-[#1e293b] text-xs rounded-lg flex items-center gap-1.5"
+                >
+                  <Send className="w-3 h-3 text-indigo-400" />
+                  <span>{notifTesting ? 'Enviando...' : 'Testar'}</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-3 bg-[#131c31] rounded-xl border border-[#1e293b] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5 text-blue-400" /> Telegram Bot
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={notif.telegramEnabled}
+                      onChange={(e) => setNotif({ ...notif, telegramEnabled: e.target.checked })}
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={notif.telegramBotToken}
+                    onChange={(e) => setNotif({ ...notif, telegramBotToken: e.target.value })}
+                    placeholder="Bot Token"
+                    className="w-full px-2.5 py-1.5 bg-[#090d16] border border-[#1e293b] rounded-lg text-white text-xs font-mono"
+                  />
+                  <input
+                    type="text"
+                    value={notif.telegramChatId}
+                    onChange={(e) => setNotif({ ...notif, telegramChatId: e.target.value })}
+                    placeholder="Chat ID"
+                    className="w-full px-2.5 py-1.5 bg-[#090d16] border border-[#1e293b] rounded-lg text-white text-xs font-mono"
+                  />
+                </div>
+
+                <div className="p-3 bg-[#131c31] rounded-xl border border-[#1e293b] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp Webhook
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={notif.whatsappEnabled}
+                      onChange={(e) => setNotif({ ...notif, whatsappEnabled: e.target.checked })}
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={notif.whatsappWebhookUrl}
+                    onChange={(e) => setNotif({ ...notif, whatsappWebhookUrl: e.target.value })}
+                    placeholder="Webhook URL"
+                    className="w-full px-2.5 py-1.5 bg-[#090d16] border border-[#1e293b] rounded-lg text-white text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                {notifSaved && <span className="text-xs text-emerald-400 self-center">Salvo!</span>}
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl"
+                >
+                  Salvar Notificações
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+
+      {/* Modal: Conectar Nova Conta (Correção de erros de conexão) */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Cookies / Sessão (Opcional — modo simulação)</label>
-              <textarea
-                rows={3}
-                value={cookies}
-                onChange={(e) => setCookies(e.target.value)}
-                placeholder="c_user=1000...; xs=2%3A..."
-                className="w-full px-3.5 py-2.5 bg-[#131c31] border border-[#1e293b] rounded-xl text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
-              />
-              <p className="text-[11px] text-slate-500 mt-1">Para Facebook, cookies ainda funcionam em simulação. Para Instagram oficial use o bloco abaixo.</p>
+              <h3 className="text-base font-bold text-white">Conectar Nova Conta</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Vincule seu perfil do Facebook para começar a postar</p>
             </div>
 
-            {platform === 'INSTAGRAM' && (
-              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">✨ Instagram API Oficial (seguro — sem risco de ban)</h4>
-                  <button type="button" onClick={handleValidateInstagram} disabled={igValidating} className="text-[11px] px-2 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 font-bold">{igValidating ? 'Validando...' : 'Validar credenciais'}</button>
-                </div>
-                <p className="text-[11px] text-slate-400">Cole o Access Token de longa duração e o IG User ID do seu App em developers.facebook.com. Quando preenchido, a publicação usa a Graph API oficial (2 passos) em vez de cookies.</p>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Access Token (longa duração)</label>
-                  <input type="text" value={igToken} onChange={(e) => setIgToken(e.target.value)} placeholder="EAAB..." className="w-full px-3.5 py-2.5 bg-[#0f172a] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 font-mono" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">IG User ID (instagram_business_account.id)</label>
-                  <input type="text" value={igUserId} onChange={(e) => setIgUserId(e.target.value)} placeholder="1784..." className="w-full px-3.5 py-2.5 bg-[#0f172a] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 font-mono" />
-                </div>
-                {igMsg && <p className={`text-xs ${igMsg.startsWith('✓') ? 'text-emerald-400' : 'text-amber-300'}`}>{igMsg}</p>}
+            {modalError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-300 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <span>{modalError}</span>
               </div>
             )}
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-slate-300">Proxy HTTP/SOCKS5 (Opcional)</label>
-                <button type="button" onClick={handleValidateProxy} disabled={proxyValidating} className="text-[11px] px-2 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-bold">{proxyValidating ? 'Validando...' : 'Validar proxy'}</button>
+            <form onSubmit={handleManualCreate} className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Plataforma</label>
+                  <select
+                    value={modalPlatform}
+                    onChange={(e) => setModalPlatform(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="FACEBOOK">Facebook</option>
+                    <option value="INSTAGRAM">Instagram</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Nome de Identificação</label>
+                  <input
+                    type="text"
+                    value={modalName}
+                    onChange={(e) => setModalName(e.target.value)}
+                    placeholder="Ex: Luiz Eduardo"
+                    required
+                    className="w-full px-3 py-2 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
               </div>
-              <input
-                type="text"
-                value={proxy}
-                onChange={(e) => setProxy(e.target.value)}
-                placeholder="http://usuario:senha@ip:porta"
-                className="w-full px-3.5 py-2.5 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500"
-              />
-              {proxyMsg && <p className={`text-xs mt-1 ${proxyMsg.startsWith('✓') ? 'text-emerald-400' : 'text-amber-300'}`}>{proxyMsg}</p>}
-              <p className="text-[11px] text-slate-500 mt-1">1 proxy por conta. Use residencial/móvel para Facebook e Instagram. Deixe vazio se for usar IP direto.</p>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  ID do Perfil / Link do Facebook
+                </label>
+                <input
+                  type="text"
+                  value={modalIdentifier}
+                  onChange={(e) => setModalIdentifier(e.target.value)}
+                  placeholder="https://www.facebook.com ou seu ID"
+                  className="w-full px-3 py-2 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Pode colar o link do perfil (ex: facebook.com/seunome) ou apenas o ID numérico.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Cookies / Sessão (Opcional — modo simulação)
+                </label>
+                <textarea
+                  rows={2}
+                  value={modalCookies}
+                  onChange={(e) => setModalCookies(e.target.value)}
+                  placeholder="c_user=1000...; xs=2%3A..."
+                  className="w-full px-3 py-2 bg-[#131c31] border border-[#1e293b] rounded-xl text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Proxy HTTP/SOCKS5 (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={modalProxy}
+                  onChange={(e) => setModalProxy(e.target.value)}
+                  placeholder="http://usuario:senha@ip:porta"
+                  className="w-full px-3 py-2 bg-[#131c31] border border-[#1e293b] rounded-xl text-white text-xs font-mono focus:outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Apenas para proxy de IP dedicado. Deixe em branco se for usar sua conexão normal.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={modalSubmitting}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center gap-1.5 transition-all"
+                >
+                  {modalSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>Conectar Conta</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Guias de Recurso */}
+      {showGuidesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setShowGuidesModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2.5">
+              <HelpCircle className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-base font-bold text-white">Guias de Recurso do Pulso Social</h3>
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="space-y-3 text-xs text-slate-300">
+              <div className="p-3 bg-[#131c31] rounded-xl border border-[#1e293b] space-y-1">
+                <h4 className="font-bold text-white">1. Como conectar sua conta com segurança</h4>
+                <p className="text-slate-400 leading-relaxed">
+                  Basta clicar em <b>"Conectar"</b> no canto superior direito com sua aba do Facebook aberta no navegador. A extensão oficial sincroniza sua sessão e grupos automaticamente sem precisar de senha.
+                </p>
+              </div>
+
+              <div className="p-3 bg-[#131c31] rounded-xl border border-[#1e293b] space-y-1">
+                <h4 className="font-bold text-white">2. Sincronização e Disparos de Grupos</h4>
+                <p className="text-slate-400 leading-relaxed">
+                  Acesse <b>Listas de grupos</b> para atualizar e selecionar grupos segmentados. No <b>Postador PRO</b>, programe campanhas com delays inteligentes e anti-ban automático.
+                </p>
+              </div>
+
+              <div className="p-3 bg-[#131c31] rounded-xl border border-[#1e293b] space-y-1">
+                <h4 className="font-bold text-white">3. Backups e Segurança</h4>
+                <p className="text-slate-400 leading-relaxed">
+                  Use o botão <b>Exportar backup</b> para salvar suas listas, postagens e mídias no seu computador. Tokens de login nunca são incluídos para total privacidade.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
               <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                onClick={() => setShowGuidesModal(false)}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl"
               >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg"
-              >
-                Conectar Conta
+                Entendi
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
     </div>

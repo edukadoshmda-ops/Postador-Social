@@ -50,6 +50,7 @@ const stats_1 = require("./routes/stats");
 const upload_1 = require("./routes/upload");
 const notifications_1 = require("./routes/notifications");
 const auth_1 = require("./routes/auth");
+const campaignRunner_1 = require("./services/campaignRunner");
 require("./core/supabaseClient");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
@@ -103,6 +104,7 @@ app.use(errorHandler_1.errorHandler);
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : config_1.CONFIG.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Pulso Social Backend running on 0.0.0.0:${PORT}`);
+    campaignRunner_1.CampaignRunner.resumeAllRunningCampaigns();
 });
 module.exports = app;
 exports.default = app;

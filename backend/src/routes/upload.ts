@@ -26,6 +26,7 @@ const ALLOWED_MIMES: Record<string, { exts: string[]; maxBytes: number; label: s
   'image/jpeg': { exts: ['.jpg', '.jpeg'], maxBytes: 10 * 1024 * 1024, label: 'JPEG' },
   'image/png': { exts: ['.png'], maxBytes: 10 * 1024 * 1024, label: 'PNG' },
   'image/webp': { exts: ['.webp'], maxBytes: 10 * 1024 * 1024, label: 'WEBP' },
+  'image/gif': { exts: ['.gif'], maxBytes: 25 * 1024 * 1024, label: 'GIF' },
   'video/mp4': { exts: ['.mp4'], maxBytes: 100 * 1024 * 1024, label: 'MP4' },
   'video/quicktime': { exts: ['.mov'], maxBytes: 100 * 1024 * 1024, label: 'MOV' },
 };

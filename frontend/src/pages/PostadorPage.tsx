@@ -20,9 +20,18 @@ import {
   ExternalLink,
   Repeat,
   X,
-  Plus
+  Plus,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  FolderPlus,
+  Folder,
+  Check,
+  Layers,
+  FastForward
 } from 'lucide-react';
-import { api, Campaign, Account, GroupList, CreativeItem } from '../core/apiService';
+import { api, Campaign, Account, GroupList, CreativeItem, LibraryFolder } from '../core/apiService';
 import CalibratorModal from '../components/CalibratorModal';
 
 export default function PostadorPage() {
@@ -52,7 +61,13 @@ export default function PostadorPage() {
     video: true,
     intercalar: false
   });
+  const [folders, setFolders] = useState<LibraryFolder[]>([]);
   const [selectedFolder, setSelectedFolder] = useState('');
+  const [savingFolderConfig, setSavingFolderConfig] = useState(false);
+  const [folderConfigSavedMsg, setFolderConfigSavedMsg] = useState<string | null>(null);
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderColor, setNewFolderColor] = useState('#4F46E5');
   const [minInterval, setMinInterval] = useState(30);
   const [maxInterval, setMaxInterval] = useState(90);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
@@ -61,11 +76,48 @@ export default function PostadorPage() {
   const [batchSize, setBatchSize] = useState(10);
   const [batchPauseMinutes, setBatchPauseMinutes] = useState(15);
   const [variableMode, setVariableMode] = useState<'PRESET' | 'ALWAYS_ALTERNATE' | 'ALWAYS_ALL'>('PRESET');
-  const [targetMode, setTargetMode] = useState<'SELECT_GROUPS' | 'USE_SAVED_LIST'>('SELECT_GROUPS');
+  const [targetMode, setTargetMode] = useState<'SELECT_GROUPS' | 'USE_SAVED_LIST'>('USE_SAVED_LIST');
   const [selectedGroupListId, setSelectedGroupListId] = useState('');
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [uniqueContentText, setUniqueContentText] = useState('');
   const [uniqueMediaUrl, setUniqueMediaUrl] = useState('');
+
+  // Upload de mídia no postador
+  const [isMediaUploading, setIsMediaUploading] = useState(false);
+  const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
+  const [mediaDragActive, setMediaDragActive] = useState(false);
+  const [uploadedMediaName, setUploadedMediaName] = useState<string | null>(null);
+  const [uploadedMediaSize, setUploadedMediaSize] = useState<string | null>(null);
+
+  const handleMediaUpload = async (file: File) => {
+    if (!file) return;
+    setMediaUploadError(null);
+    setIsMediaUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (res.data && res.data.success && res.data.data?.url) {
+        setUniqueMediaUrl(res.data.data.url);
+        setUploadedMediaName(file.name);
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        setUploadedMediaSize(`${sizeMb} MB`);
+      } else {
+        throw new Error(res.data?.error || 'Falha ao enviar arquivo');
+      }
+    } catch (err: any) {
+      console.error('Erro de upload no Postador:', err);
+      const msg = err.response?.data?.error || err.message || 'Erro ao enviar mídia';
+      setMediaUploadError(msg);
+    } finally {
+      setIsMediaUploading(false);
+    }
+  };
 
   // Status & Feedback
   const [formError, setFormError] = useState<string | null>(null);
@@ -97,11 +149,12 @@ export default function PostadorPage() {
 
   const loadData = async () => {
     try {
-      const [campRes, accRes, glRes, libRes] = await Promise.allSettled([
+      const [campRes, accRes, glRes, libRes, folderRes] = await Promise.allSettled([
         api.get('/campaigns'),
         api.get('/accounts'),
         api.get('/groups/lists'),
         api.get('/library'),
+        api.get('/library/folders'),
       ]);
 
       if (campRes.status === 'fulfilled') {
@@ -113,17 +166,91 @@ export default function PostadorPage() {
       if (glRes.status === 'fulfilled') {
         const lists = glRes.value.data.data || [];
         setGroupLists(lists);
-        if (lists.length > 0 && !selectedGroupListId) {
-          setSelectedGroupListId(lists[0].id);
+        if (lists.length > 0) {
+          setSelectedGroupListId((prev) => (prev && lists.some((l: any) => l.id === prev) ? prev : lists[0].id));
         }
       }
       if (libRes.status === 'fulfilled') {
         setCreatives(libRes.value.data.data || []);
       }
+      if (folderRes.status === 'fulfilled') {
+        const fList = folderRes.value.data.data || [];
+        setFolders(fList);
+        if (fList.length > 0) {
+          setSelectedFolder((prev) => (prev && fList.some((f: any) => f.id === prev) ? prev : fList[0].id));
+        }
+      }
     } catch (err) {
       console.error('Error loading data', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSelectFolder = (f: LibraryFolder) => {
+    setSelectedFolder(f.id);
+    if (f.config) {
+      if (f.config.minInterval) setMinInterval(f.config.minInterval);
+      if (f.config.maxInterval) setMaxInterval(f.config.maxInterval);
+      if (f.config.batchEnabled !== undefined) setBatchEnabled(f.config.batchEnabled);
+      if (f.config.batchSize) setBatchSize(f.config.batchSize);
+      if (f.config.batchPauseMinutes) setBatchPauseMinutes(f.config.batchPauseMinutes);
+      if (f.config.mediaFormats) setMediaFormats(f.config.mediaFormats);
+    }
+  };
+
+  const handleSaveCurrentConfigToFolder = async () => {
+    if (!selectedFolder) return;
+    setSavingFolderConfig(true);
+    try {
+      const configToSave = {
+        minInterval,
+        maxInterval,
+        batchEnabled,
+        batchSize,
+        batchPauseMinutes,
+        mediaFormats,
+        variableMode
+      };
+      await api.put(`/library/folders/${selectedFolder}`, { config: configToSave });
+      setFolderConfigSavedMsg('✓ Configurações salvas dentro da pasta com sucesso!');
+      setTimeout(() => setFolderConfigSavedMsg(null), 3500);
+      const res = await api.get('/library/folders');
+      setFolders(res.data.data || []);
+    } catch (err) {
+      console.error('Erro ao salvar configurações na pasta:', err);
+    } finally {
+      setSavingFolderConfig(false);
+    }
+  };
+
+  const handleQuickCreateFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFolderName.trim()) return;
+    try {
+      const res = await api.post('/library/folders', {
+        name: newFolderName.trim(),
+        color: newFolderColor,
+        config: {
+          minInterval,
+          maxInterval,
+          batchEnabled,
+          batchSize,
+          batchPauseMinutes,
+          mediaFormats
+        }
+      });
+      const created = res.data.data;
+      setShowNewFolderModal(false);
+      setNewFolderName('');
+      const resF = await api.get('/library/folders');
+      const fList = resF.data.data || [];
+      setFolders(fList);
+      if (created?.id) setSelectedFolder(created.id);
+      setFolderConfigSavedMsg(`✓ Pasta "${created.name}" criada e configurada com sucesso!`);
+      setTimeout(() => setFolderConfigSavedMsg(null), 3500);
+    } catch (err) {
+      console.error('Erro ao criar pasta no postador:', err);
     }
   };
 
@@ -194,26 +321,29 @@ export default function PostadorPage() {
       return;
     }
 
-    if (postSourceMode === 'BIBLIOTECA' && creatives.length === 0) {
-      setFormError('Nenhuma mídia ativa de postagem na Biblioteca. Crie pastas e mídias na Biblioteca antes de continuar.');
-      return;
-    }
-
-    if (accounts.length === 0) {
-      setFormError('Conecte pelo menos uma conta nas Configurações.');
-      return;
-    }
-
-    const accountId = accounts[0]?.id;
+    const validAccount = accounts.find((a) => a.cookies && String(a.cookies).length >= 200) || accounts[0];
+    const accountId = validAccount?.id;
     let contentText = uniqueContentText;
     let mediaType: 'TEXT' | 'IMAGE' | 'VIDEO' = 'TEXT';
     const mediaUrls: string[] = [];
 
     if (postSourceMode === 'BIBLIOTECA') {
-      if (creatives.length > 0) {
-        contentText = creatives[0].content_text || campaignName;
-        if (creatives[0].media_type === 'IMAGE') mediaType = 'IMAGE';
-        else if (creatives[0].media_type === 'VIDEO') mediaType = 'VIDEO';
+      const activeFolder = selectedFolder || folders[0]?.id;
+      if (!activeFolder && folders.length === 0) {
+        setFormError('Crie pelo menos 1 pasta na Biblioteca antes de continuar.');
+        return;
+      }
+      const folderCreatives = creatives.filter(
+        (c) => c.folder_id === activeFolder || (!c.folder_id && activeFolder === 'f_promocoes')
+      );
+      const chosen = folderCreatives[0] || creatives[0];
+      if (chosen) {
+        contentText = chosen.content_text || campaignName;
+        if (chosen.media_type === 'IMAGE') mediaType = 'IMAGE';
+        else if (chosen.media_type === 'VIDEO') mediaType = 'VIDEO';
+        if (chosen.media_urls && Array.isArray(chosen.media_urls)) {
+          mediaUrls.push(...chosen.media_urls);
+        }
       } else {
         contentText = campaignName;
       }
@@ -289,6 +419,9 @@ export default function PostadorPage() {
   };
   const handleStop = async (id: string) => {
     try { await api.post(`/campaigns/${id}/stop`); loadCampaigns(); } catch (e) { console.error(e); }
+  };
+  const handleStep = async (id: string) => {
+    try { await api.post(`/campaigns/${id}/step`); loadCampaigns(); } catch (e) { console.error(e); }
   };
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja realmente excluir esta campanha?')) return;
@@ -547,23 +680,150 @@ export default function PostadorPage() {
               {getMediaSummaryText()}
             </p>
 
-            {/* Card de Alerta Âmbar */}
-            <div className="p-3 bg-[#fff7ed] border border-amber-200/80 rounded-xl text-xs text-amber-800 leading-relaxed">
-              Nenhuma mídia ativa de postagem na Biblioteca. Ative mídias na Biblioteca.
-            </div>
-
-            {/* Pasta(s) da biblioteca */}
+            {/* Card de Informação / Alerta de Mídias e Seleção de Pasta */}
             {postSourceMode === 'BIBLIOTECA' ? (
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Pasta(s) da biblioteca
-                </label>
-                <p className="text-xs text-slate-500">
-                  Nenhuma pasta criada ainda. Crie pastas na Biblioteca primeiro.
-                </p>
-                <p className="text-xs text-red-500 font-medium">
-                  Escolha pelo menos 1 pasta da biblioteca antes de continuar.
-                </p>
+              <div className="space-y-3">
+                {(() => {
+                  const selectedFolderObj = folders.find((f) => f.id === selectedFolder);
+                  const activeCreativesCount = selectedFolder
+                    ? creatives.filter((c) => c.folder_id === selectedFolder || (!c.folder_id && selectedFolder === 'f_promocoes')).length
+                    : creatives.length;
+
+                  if (activeCreativesCount > 0) {
+                    return (
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>
+                            <strong>{activeCreativesCount} mídia(s) ativa(s)</strong> prontas na pasta{' '}
+                            <strong>{selectedFolderObj?.name || 'padrão'}</strong>.
+                          </span>
+                        </div>
+                        <a
+                          href="/library"
+                          className="text-emerald-700 dark:text-emerald-400 font-semibold hover:underline text-[11px] whitespace-nowrap ml-2"
+                        >
+                          Biblioteca →
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Nenhuma mídia vinculada a esta pasta ainda.</span>
+                      </div>
+                      <a
+                        href="/library"
+                        className="text-amber-700 dark:text-amber-400 font-semibold hover:underline text-[11px] whitespace-nowrap ml-2"
+                      >
+                        Adicionar na Biblioteca →
+                      </a>
+                    </div>
+                  );
+                })()}
+
+                {/* Pasta(s) da biblioteca */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Folder className="w-3.5 h-3.5 text-[#5b5bd6]" />
+                      <span>Pasta da Biblioteca</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewFolderModal(true)}
+                      className="text-[11px] font-semibold text-[#5b5bd6] hover:text-[#4338ca] flex items-center gap-1 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Nova pasta</span>
+                    </button>
+                  </div>
+
+                  {folders.length === 0 ? (
+                    <div className="p-3 border border-dashed border-slate-200 dark:border-[#1e293b] rounded-xl text-center">
+                      <p className="text-xs text-slate-500 mb-2">Nenhuma pasta criada ainda.</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewFolderModal(true)}
+                        className="px-3 py-1.5 bg-[#5b5bd6] text-white rounded-lg text-xs font-semibold hover:bg-[#4338ca] transition-colors"
+                      >
+                        + Criar primeira pasta
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {folders.map((f) => {
+                        const isSelected = selectedFolder === f.id;
+                        const count = creatives.filter(
+                          (c) => c.folder_id === f.id || (!c.folder_id && f.id === 'f_promocoes')
+                        ).length;
+                        return (
+                          <div
+                            key={f.id}
+                            onClick={() => handleSelectFolder(f)}
+                            role="button"
+                            tabIndex={0}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                              isSelected
+                                ? 'bg-indigo-50/70 dark:bg-[#5b5bd6]/15 border-[#5b5bd6] shadow-xs'
+                                : 'bg-white dark:bg-[#131c31] border-slate-200 dark:border-[#1e293b] hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full shrink-0"
+                                style={{ backgroundColor: f.color || '#4F46E5' }}
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-800 dark:text-white truncate">
+                                  {f.name}
+                                </p>
+                                <p className="text-[11px] text-slate-400">
+                                  {count} {count === 1 ? 'mídia' : 'mídias'}
+                                </p>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-[#5b5bd6] text-white flex items-center justify-center shrink-0">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Botão de Salvar Configurações nesta pasta */}
+                  {selectedFolder && (
+                    <div className="pt-1.5">
+                      <button
+                        type="button"
+                        onClick={handleSaveCurrentConfigToFolder}
+                        disabled={savingFolderConfig}
+                        className="w-full py-2.5 px-4 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-950/40 dark:to-purple-950/40 hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/50 dark:hover:to-purple-900/50 text-xs font-bold text-[#5b5bd6] dark:text-indigo-300 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                        title="Salva os intervalos de envio, lote e formatos nesta pasta para reutilizar em qualquer campanha"
+                      >
+                        {savingFolderConfig ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Layers className="w-4 h-4 text-[#5b5bd6] dark:text-indigo-400" />
+                        )}
+                        <span>Salvar configurações nesta pasta</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {folderConfigSavedMsg && (
+                    <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-lg text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>{folderConfigSavedMsg}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               /* Modo Único: Campos de Copy e URL direta */
@@ -581,17 +841,144 @@ export default function PostadorPage() {
                   />
                 </div>
                 {(mediaFormats.image || mediaFormats.video) && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      URL da Mídia (Imagem ou Vídeo)
-                    </label>
-                    <input
-                      type="text"
-                      value={uniqueMediaUrl}
-                      onChange={(e) => setUniqueMediaUrl(e.target.value)}
-                      placeholder="https://exemplo.com/imagem.png"
-                      className="w-full px-3.5 py-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] rounded-xl text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[#5b5bd6]"
-                    />
+                  <div className="space-y-3">
+                    {/* Upload Dropzone */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          Upload de Imagem ou Vídeo
+                        </label>
+                        <span className="text-[11px] text-slate-400">
+                          {mediaFormats.image && mediaFormats.video
+                            ? 'PNG, JPG, WEBP, GIF, MP4 ou MOV'
+                            : mediaFormats.image
+                            ? 'PNG, JPG, WEBP ou GIF (até 15MB)'
+                            : 'MP4 ou MOV (até 100MB)'}
+                        </span>
+                      </div>
+
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setMediaDragActive(true); }}
+                        onDragLeave={() => setMediaDragActive(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setMediaDragActive(false);
+                          const file = e.dataTransfer.files?.[0];
+                          if (file) handleMediaUpload(file);
+                        }}
+                        className={`relative border-2 border-dashed rounded-2xl p-4 transition-all text-center ${
+                          mediaDragActive
+                            ? 'border-[#5b5bd6] bg-[#5b5bd6]/10'
+                            : 'border-slate-200 dark:border-[#1e293b] hover:border-[#5b5bd6]/60 bg-white dark:bg-[#0f172a]/60'
+                        }`}
+                      >
+                        <input
+                          type="file"
+                          accept={
+                            mediaFormats.image && mediaFormats.video
+                              ? 'image/*,video/*'
+                              : mediaFormats.image
+                              ? 'image/*'
+                              : 'video/*'
+                          }
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleMediaUpload(file);
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                          disabled={isMediaUploading}
+                        />
+
+                        {isMediaUploading ? (
+                          <div className="flex flex-col items-center justify-center py-3 space-y-2">
+                            <Loader2 className="w-8 h-8 text-[#5b5bd6] animate-spin" />
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                              Fazendo upload da mídia para o servidor...
+                            </span>
+                          </div>
+                        ) : uniqueMediaUrl ? (
+                          <div className="flex items-center gap-3 text-left p-1">
+                            <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 border border-slate-700/50 shrink-0 relative flex items-center justify-center">
+                              {uniqueMediaUrl.match(/\.(mp4|mov|webm)$/i) ? (
+                                <Film className="w-8 h-8 text-[#818cf8]" />
+                              ) : (
+                                <img
+                                  src={uniqueMediaUrl}
+                                  alt="Prévia"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                <span>Mídia pronta para postagem</span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate mt-0.5 font-mono">
+                                {uploadedMediaName || uniqueMediaUrl}
+                              </p>
+                              {uploadedMediaSize && (
+                                <span className="text-[10px] text-slate-400 font-mono">{uploadedMediaSize}</span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setUniqueMediaUrl('');
+                                setUploadedMediaName(null);
+                                setUploadedMediaSize(null);
+                              }}
+                              className="px-3 py-1.5 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer z-20"
+                            >
+                              Trocar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center gap-2 py-3 cursor-pointer">
+                            <div className="w-10 h-10 rounded-xl bg-[#5b5bd6]/10 text-[#5b5bd6] flex items-center justify-center">
+                              <UploadCloud className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                Clique para escolher imagem ou vídeo do seu computador
+                              </p>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                Ou arraste e solte o arquivo diretamente aqui
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {mediaUploadError && (
+                        <div className="mt-2 text-xs text-rose-500 flex items-center gap-1.5 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20">
+                          <AlertCircle className="w-4 h-4 shrink-0" />
+                          <span>{mediaUploadError}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* URL Alternativa */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        URL da Mídia (Imagem ou Vídeo)
+                      </label>
+                      <input
+                        type="text"
+                        value={uniqueMediaUrl}
+                        onChange={(e) => {
+                          setUniqueMediaUrl(e.target.value);
+                          setUploadedMediaName(null);
+                          setUploadedMediaSize(null);
+                        }}
+                        placeholder="https://exemplo.com/imagem.png"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] rounded-xl text-slate-800 dark:text-white text-xs focus:outline-none focus:border-[#5b5bd6]"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -787,7 +1174,7 @@ export default function PostadorPage() {
               </div>
 
               {/* Mensagem e contador */}
-              {targetMode === 'USE_SAVED_LIST' && groupLists.length > 0 ? (
+              {groupLists.length > 0 ? (
                 <div className="pt-2">
                   <select
                     value={selectedGroupListId}
@@ -803,13 +1190,13 @@ export default function PostadorPage() {
                 </div>
               ) : (
                 <p className="text-xs text-slate-600 dark:text-slate-400 pt-1">
-                  Nenhum grupo. Abra o Facebook e sincronize seus grupos.
+                  Nenhum grupo. Crie uma lista ou sincronize seus grupos.
                 </p>
               )}
 
               <p className="text-xs text-slate-500 font-medium">
-                {targetMode === 'USE_SAVED_LIST' && selectedGroupListId
-                  ? `${groupLists.find(l => l.id === selectedGroupListId)?.total_groups || 0} grupo(s) alvo`
+                {selectedGroupListId
+                  ? `${groupLists.find((l) => l.id === selectedGroupListId)?.total_groups || 0} grupo(s) alvo`
                   : '0 grupo(s) alvo'}
               </p>
             </div>
@@ -912,6 +1299,16 @@ export default function PostadorPage() {
                         )}
                         {isRunning && (
                           <button
+                            onClick={() => handleStep(c.id)}
+                            title="Enviar próximo grupo agora (pular espera de intervalo)"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all shadow-xs"
+                          >
+                            <FastForward className="w-3.5 h-3.5 fill-white" />
+                            <span>Próximo post agora</span>
+                          </button>
+                        )}
+                        {isRunning && (
+                          <button
                             onClick={() => handlePause(c.id)}
                             title="Pausar"
                             className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 transition-colors"
@@ -949,10 +1346,11 @@ export default function PostadorPage() {
                         {c.failed_posts > 0 && (
                           <button
                             onClick={() => handleRetry(c.id)}
-                            title="Retentar falhas"
-                            className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200"
+                            title="Retentar os posts que falharam"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-semibold transition-all shadow-xs"
                           >
-                            <Repeat className="w-4 h-4" />
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span>Retentar ({c.failed_posts})</span>
                           </button>
                         )}
                         <button
@@ -972,12 +1370,13 @@ export default function PostadorPage() {
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-500">
-                          {c.current_target_name ? `Processando: ${c.current_target_name}` : 'Progresso geral'}
+                        <span className="text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1.5 truncate max-w-[80%]">
+                          {isRunning && <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />}
+                          <span className="truncate">{c.current_target_name ? c.current_target_name : 'Progresso geral'}</span>
                         </span>
-                        <span className="font-bold text-slate-800 dark:text-white">{c.progress_percent}%</span>
+                        <span className="font-bold text-slate-800 dark:text-white shrink-0">{c.progress_percent}%</span>
                       </div>
                       <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                         <div
@@ -1061,6 +1460,83 @@ export default function PostadorPage() {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Criar Nova Pasta Rápida */}
+      {showNewFolderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-[#1e293b] rounded-2xl w-full max-w-sm shadow-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <FolderPlus className="w-4 h-4 text-[#5b5bd6]" />
+                <span>Nova Pasta da Biblioteca</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewFolderModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickCreateFolder} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  Nome da Pasta
+                </label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="Ex.: Promoções Relâmpago, Imóveis..."
+                  required
+                  autoFocus
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#1e293b] rounded-xl text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#5b5bd6]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                  Cor da Pasta
+                </label>
+                <div className="flex items-center gap-2">
+                  {['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6', '#06B6D4'].map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setNewFolderColor(color)}
+                      className={`w-6 h-6 rounded-full transition-transform ${
+                        newFolderColor === color ? 'scale-125 ring-2 ring-offset-2 ring-[#5b5bd6]' : 'opacity-70 hover:opacity-100'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-slate-50 dark:bg-[#0f172a] rounded-xl text-[11px] text-slate-500">
+                Esta pasta herdará automaticamente os intervalos e lotes configurados nesta tela para você reutilizar sempre que quiser.
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowNewFolderModal(false)}
+                  className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1e293b] rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 bg-[#5b5bd6] text-white text-xs font-semibold rounded-lg hover:bg-[#4338ca] transition-colors"
+                >
+                  Criar e Selecionar
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -13,11 +13,11 @@ export interface AntiBanConfig {
 }
 
 export const DEFAULT_ANTI_BAN: AntiBanConfig = {
-  maxPostsPerHour: 20,
-  maxPostsPerDay: 60,
+  maxPostsPerHour: 120,
+  maxPostsPerDay: 600,
   maxConsecutiveFailures: 5,
   maxErrorRate: 0.30,
-  enableRateLimiting: true,
+  enableRateLimiting: false, // não bloqueia campanhas ativas, anti-ban gerenciado pelos intervalos entre posts
   monitorErrorRates: true,
 };
 

@@ -173,28 +173,31 @@ function collectFromDOM(seen, groups) {
 
 // 3) Rola suavemente todos os containers scrolláveis da página do Facebook
 function performScroll() {
-  try { window.scrollTo(0, document.documentElement.scrollHeight); } catch {}
-  try { window.scrollTo(0, document.body.scrollHeight); } catch {}
-  try { document.documentElement.scrollTop = document.documentElement.scrollHeight; } catch {}
-  try { document.body.scrollTop = document.body.scrollHeight; } catch {}
+  try { window.scrollTo(0, 9999999); } catch {}
+  try { window.scrollBy(0, 2000); } catch {}
+  try { document.documentElement.scrollTop += 2000; } catch {}
+  try { document.body.scrollTop += 2000; } catch {}
 
-  // Facebook usa containers scrolláveis com role="main" ou divs com overflow
-  const scrollables = Array.from(document.querySelectorAll('div[role="main"], div[role="feed"], div')).filter(el => {
-    return el.scrollHeight > el.clientHeight + 100 && el.clientHeight > 150;
+  // Facebook usa containers scrolláveis com role="main", role="feed" ou divs com overflow
+  const scrollables = Array.from(document.querySelectorAll('div[role="main"], div[role="feed"], div[data-pagelet], div')).filter(el => {
+    return el.scrollHeight > el.clientHeight + 60 && el.clientHeight > 80;
   });
 
   for (const el of scrollables) {
-    try { el.scrollTop = el.scrollHeight; } catch {}
+    try { 
+      el.scrollTop = el.scrollHeight; 
+      if (el.scrollBy) el.scrollBy(0, 1500);
+    } catch {}
   }
 
-  // Clica em botões de expandir lista ("Ver mais", "Ver tudo")
+  // Clica em botões de expandir lista ("Ver mais", "Ver tudo", "Mostrar mais", "Carregar mais")
   try {
     const buttons = Array.from(document.querySelectorAll('div[role="button"], span, a'));
     for (const b of buttons) {
       const txt = (b.innerText || '').trim().toLowerCase();
-      if (txt === 'ver mais' || txt === 'mostrar mais' || txt === 'ver tudo' || txt === 'see more' || txt === 'show more') {
+      if (txt === 'ver mais' || txt === 'mostrar mais' || txt === 'ver tudo' || txt === 'see more' || txt === 'show more' || txt === 'carregar mais') {
         const rect = b.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight + 200) {
+        if (rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight + 400) {
           try { b.click(); } catch {}
         }
       }
@@ -202,8 +205,8 @@ function performScroll() {
   } catch {}
 }
 
-// Extração completa com scroll progressivo
-async function extractAllFacebookGroups(maxIterations = 25) {
+// Extração completa com scroll progressivo profundo (extrai centenas de grupos)
+async function extractAllFacebookGroups(maxIterations = 100) {
   const seen = new Set();
   const groups = [];
 
@@ -214,10 +217,10 @@ async function extractAllFacebookGroups(maxIterations = 25) {
   let lastCount = groups.length;
   let staleCount = 0;
 
-  // Passo 2: Scroll e coleta incremental
+  // Passo 2: Scroll profundo e coleta incremental contínua
   for (let i = 0; i < maxIterations; i++) {
     performScroll();
-    await sleep(750);
+    await sleep(650);
 
     extractFromScripts(seen, groups);
     collectFromDOM(seen, groups);
@@ -229,9 +232,9 @@ async function extractAllFacebookGroups(maxIterations = 25) {
       lastCount = groups.length;
     }
 
-    // Se não encontrou novos grupos após 4 scrolls consecutivos e já tem grupos, encerra
-    if (staleCount >= 4 && groups.length > 0) break;
-    if (groups.length >= 400) break;
+    // Só encerra se realmente não houver mais novos grupos após 8 scrolls consecutivos
+    if (staleCount >= 8 && groups.length > 0) break;
+    if (groups.length >= 1500) break;
   }
 
   // Passo 3: Limpeza final de nomes genéricos quando possível

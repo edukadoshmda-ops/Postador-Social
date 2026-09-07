@@ -46,11 +46,32 @@ const deliveryCheck_1 = require("../core/deliveryCheck");
 // Active running timers per campaign id
 const activeCampaigns = new Map();
 class CampaignRunner {
+    static resumeAllRunningCampaigns() {
+        try {
+            const running = db_1.db.prepare(`SELECT id FROM campaigns WHERE status = 'RUNNING'`).all();
+            for (const c of running) {
+                if (!activeCampaigns.has(c.id)) {
+                    activeCampaigns.set(c.id, { timer: null, isPaused: false, isCancelled: false });
+                    setTimeout(() => {
+                        CampaignRunner.processNextItem(c.id);
+                    }, 3000);
+                }
+            }
+        }
+        catch (e) {
+            console.error('[CampaignRunner] Erro ao retomar campanhas no boot:', e);
+        }
+    }
     static async startCampaign(campaignId) {
         const campaign = db_1.db.prepare('SELECT * FROM campaigns WHERE id = ?').get(campaignId);
         if (!campaign)
             throw new Error('Campanha não encontrada');
         if (campaign.status === 'RUNNING') {
+            if (!activeCampaigns.has(campaignId)) {
+                activeCampaigns.set(campaignId, { timer: null, isPaused: false, isCancelled: false });
+                this.processNextItem(campaignId);
+                return { message: 'Campanha retomada com sucesso' };
+            }
             return { message: 'Campanha já está em execução' };
         }
         // Validação de sessão/conta antes de iniciar — bloqueio claro em PT-BR
@@ -116,6 +137,21 @@ class CampaignRunner {
         this.processNextItem(campaignId);
         return { message: 'Campanha retomada' };
     }
+    static triggerNextImmediate(campaignId) {
+        const active = activeCampaigns.get(campaignId);
+        if (active) {
+            if (active.timer)
+                clearTimeout(active.timer);
+            active.isPaused = false;
+            active.isCancelled = false;
+        }
+        else {
+            activeCampaigns.set(campaignId, { timer: null, isPaused: false, isCancelled: false });
+        }
+        db_1.db.prepare(`UPDATE campaigns SET status = 'RUNNING' WHERE id = ?`).run(campaignId);
+        this.processNextItem(campaignId);
+        return { message: 'Próximo grupo disparado imediatamente' };
+    }
     static stopCampaign(campaignId) {
         const active = activeCampaigns.get(campaignId);
         if (active) {
@@ -179,22 +215,39 @@ class CampaignRunner {
         const effectiveLimits = (0, antiBan_1.getEffectiveLimits)(accountForAnti);
         const antiCheck = (0, antiBan_1.canPostNow)(campaign.account_id, effectiveLimits);
         if (!antiCheck.allowed) {
-            // Em vez de pausar totalmente, tentamos a postagem e registramos o resultado
-            // Isso permite que campanhas continuem funcionando mesmo com limites próximos
             db_1.db.prepare(`UPDATE campaign_items SET status = 'QUEUED' WHERE id = ?`).run(item.id);
-            // Aviso suave instead of pausing campaign - permite tentativa com limite aproximado
-            notificationService_1.NotificationService.broadcast('Atenção: limite de posts próximo 📊', `Campanha *${campaign.name}*: ${antiCheck.reason}. A postagem será tentativa mesmo com limite aproximado.`);
-            // Em vez de pausar por 60 min, apenas registramos e continuamos
-            // O resultado será registrado pelo anti-ban system após a postagem
+            const waitMs = 60 * 1000;
+            try {
+                db_1.db.prepare('UPDATE campaigns SET current_target_name = ? WHERE id = ?').run(`Pausa Anti-Ban: aguardando 60s antes do próximo grupo`, campaignId);
+            }
+            catch { }
+            if (active.timer)
+                clearTimeout(active.timer);
+            active.timer = setTimeout(() => {
+                const still = activeCampaigns.get(campaignId);
+                if (still && !still.isCancelled && !still.isPaused) {
+                    CampaignRunner.processNextItem(campaignId);
+                }
+            }, waitMs);
             return;
         }
-        // Limite por IP/proxy compartilhado - aviso suave em vez de bloqueio total
+        // Limite por IP/proxy compartilhado
         const ipCheck = (0, ipLimiter_1.canPostByIp)(accountForAnti);
         if (!ipCheck.allowed) {
-            // Em vez de pausar campanha, permitimos postagem com aviso
-            // O resultado será registrado e o sistema ajustará os limites conforme necessário
             db_1.db.prepare(`UPDATE campaign_items SET status = 'QUEUED' WHERE id = ?`).run(item.id);
-            notificationService_1.NotificationService.broadcast('Atenção: limite de IP próximo 🛡️', `Campanha *${campaign.name}*: ${ipCheck.reason}. Postagem tentativa - o sistema ajustará limites conforme resultados.`);
+            const waitMs = 60 * 1000;
+            try {
+                db_1.db.prepare('UPDATE campaigns SET current_target_name = ? WHERE id = ?').run(`Pausa IP: aguardando 60s antes do próximo grupo`, campaignId);
+            }
+            catch { }
+            if (active.timer)
+                clearTimeout(active.timer);
+            active.timer = setTimeout(() => {
+                const still = activeCampaigns.get(campaignId);
+                if (still && !still.isCancelled && !still.isPaused) {
+                    CampaignRunner.processNextItem(campaignId);
+                }
+            }, waitMs);
             return;
         }
         // Parse calibration settings (deve vir antes da rotação de contas que usa calibSettings)
@@ -399,6 +452,14 @@ class CampaignRunner {
             const longPauseSec = (0, calibrator_1.getLongPauseDuration)(calibSettings);
             waitMs += longPauseSec * 1000;
         }
+        const waitSec = Math.round(waitMs / 1000);
+        const nextMsg = waitSec > 90
+            ? `Pausa de segurança Anti-Ban (~${Math.round(waitSec / 60)} min) antes do próximo envio`
+            : `Intervalo seguro: enviando próximo grupo em ~${waitSec}s`;
+        try {
+            db_1.db.prepare('UPDATE campaigns SET current_target_name = ? WHERE id = ?').run(nextMsg, campaignId);
+        }
+        catch { }
         active.timer = setTimeout(() => {
             this.processNextItem(campaignId);
         }, waitMs);

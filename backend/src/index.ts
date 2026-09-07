@@ -13,6 +13,7 @@ import { statsRouter } from './routes/stats';
 import { uploadRouter } from './routes/upload';
 import { notificationsRouter } from './routes/notifications';
 import { authRouter } from './routes/auth';
+import { CampaignRunner } from './services/campaignRunner';
 
 import './core/supabaseClient';
 
@@ -76,6 +77,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : CONFIG.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Pulso Social Backend running on 0.0.0.0:${PORT}`);
+  CampaignRunner.resumeAllRunningCampaigns();
 });
 
 module.exports = app;

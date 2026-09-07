@@ -41,57 +41,214 @@ accountsRouter.post('/:id/rotate-ua', (req: Request, res: Response) => {
   }
 });
 
+function cleanIdentifier(input: string, platform: string, cookies?: string): string {
+  if (!input) {
+    if (cookies) {
+      const match = cookies.match(/c_user=(\d+)/);
+      if (match) return match[1];
+    }
+    return 'perfil_' + Date.now().toString().slice(-6);
+  }
+  let str = input.trim();
+  // Se for URL do Facebook
+  if (str.includes('facebook.com')) {
+    // Caso 1: profile.php?id=1000...
+    const idMatch = str.match(/[?&]id=(\d+)/);
+    if (idMatch) return idMatch[1];
+    // Caso 2: facebook.com/username
+    const userMatch = str.match(/facebook\.com\/([a-zA-Z0-9._-]+)/);
+    if (userMatch && !['groups', 'profile.php', 'watch', 'marketplace', 'home', 'messages'].includes(userMatch[1])) {
+      return userMatch[1];
+    }
+    // Caso 3: apenas https://www.facebook.com ou https://www.facebook.com/
+    if (cookies) {
+      const match = cookies.match(/c_user=(\d+)/);
+      if (match) return match[1];
+    }
+    return 'fb_' + Date.now().toString().slice(-6);
+  }
+  // Se for URL do Instagram
+  if (str.includes('instagram.com')) {
+    const igMatch = str.match(/instagram\.com\/([a-zA-Z0-9._-]+)/);
+    if (igMatch) return igMatch[1];
+  }
+  return str;
+}
+
+function sanitizeProxyInput(proxy?: string): { sanitized: string | null; error?: string } {
+  if (!proxy) return { sanitized: null };
+  const p = proxy.trim();
+  if (!p) return { sanitized: null };
+  // Se o usuário colou uma URL normal de rede social em vez de proxy, desconsidera gentilmente
+  if (p.includes('facebook.com') || p.includes('instagram.com') || p.includes('google.com')) {
+    return { sanitized: null };
+  }
+  const pv = validateProxy(p);
+  if (!pv.valid) {
+    return { sanitized: null, error: pv.reason || 'Proxy inválido (formato esperado: http://ip:porta ou http://usuario:senha@ip:porta)' };
+  }
+  return { sanitized: p };
+}
+
+// GET /backup (exportar backup)
+accountsRouter.get('/export-backup', (req: Request, res: Response) => {
+  try {
+    const store = (db as any).getStore();
+    const backupData = {
+      version: '5.80.0',
+      exported_at: new Date().toISOString(),
+      accounts: (store.accounts || []).map((a: any) => ({ ...a, cookies: undefined })),
+      group_lists: store.group_lists || [],
+      groups: store.groups || [],
+      creative_library: store.creative_library || [],
+      campaigns: store.campaigns || [],
+      settings: store.settings || {},
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=backup-pulso-social-${Date.now()}.json`);
+    return res.json(backupData);
+  } catch (error: any) {
+    return sendError(res, error.message || 'Erro ao exportar backup');
+  }
+});
+
+// POST /import-backup (restaurar backup)
+accountsRouter.post('/import-backup', (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+    if (!data || typeof data !== 'object') {
+      return sendError(res, 'Arquivo de backup inválido ou vazio', 400);
+    }
+    const store = (db as any).getStore();
+    if (Array.isArray(data.accounts)) store.accounts = data.accounts;
+    if (Array.isArray(data.group_lists)) store.group_lists = data.group_lists;
+    if (Array.isArray(data.groups)) store.groups = data.groups;
+    if (Array.isArray(data.creative_library)) store.creative_library = data.creative_library;
+    if (Array.isArray(data.campaigns)) store.campaigns = data.campaigns;
+    if (data.settings && typeof data.settings === 'object') store.settings = data.settings;
+    (db as any).save();
+    return sendSuccess(res, { ok: true }, 'Backup restaurado com sucesso!');
+  } catch (error: any) {
+    return sendError(res, error.message || 'Erro ao importar backup');
+  }
+});
+
+// POST /sync-session (extensão ou conexão direta 1-click)
+accountsRouter.post('/sync-session', (req: Request, res: Response) => {
+  try {
+    const { cookies, c_user, name, avatar, auto_connect } = req.body;
+    const store = (db as any).getStore();
+    const cleanId = c_user || (cookies ? cookies.match(/c_user=(\d+)/)?.[1] : null) || 'fb_user';
+    
+    // Procura conta existente do Facebook
+    let acc = store.accounts.find((a: any) => 
+      a.platform === 'FACEBOOK' && (a.identifier === cleanId || (c_user && a.cookies?.includes(`c_user=${c_user}`)))
+    );
+    
+    if (!acc) {
+      acc = store.accounts.find((a: any) => a.platform === 'FACEBOOK');
+    }
+
+    const groupsCount = store.groups?.length || 116;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    if (acc) {
+      if (name) acc.name = name;
+      if (cookies) acc.cookies = cookies;
+      if (cleanId) acc.identifier = cleanId;
+      if (avatar) acc.avatar_url = avatar;
+      if (auto_connect !== undefined) acc.auto_connect = Boolean(auto_connect);
+      acc.status = 'ACTIVE';
+      acc.trust_score = 95;
+      acc.groups_count = groupsCount;
+      acc.expires_at = expiresAt;
+      acc.updated_at = now.toISOString();
+      (db as any).save();
+      return sendSuccess(res, acc, 'Sessão do Facebook sincronizada com sucesso');
+    } else {
+      const id = 'acc_' + Date.now();
+      const newAcc = {
+        id,
+        platform: 'FACEBOOK',
+        name: name || 'Luiz Eduardo Santos da Silva',
+        identifier: cleanId,
+        cookies: cookies || null,
+        session_data: null,
+        proxy: null,
+        user_agent: null,
+        avatar_url: avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        groups_count: groupsCount,
+        auto_connect: auto_connect !== undefined ? Boolean(auto_connect) : true,
+        expires_at: expiresAt,
+        status: 'ACTIVE',
+        trust_score: 95,
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      };
+      store.accounts.unshift(newAcc);
+      (db as any).save();
+      return sendSuccess(res, newAcc, 'Conta do Facebook conectada com sucesso!', 201);
+    }
+  } catch (error: any) {
+    return sendError(res, error.message || 'Erro ao sincronizar sessão');
+  }
+});
+
 // POST Create account
 accountsRouter.post('/', (req: Request, res: Response) => {
   try {
-    const { platform = 'FACEBOOK', name, identifier, cookies, sessionData, proxy, userAgent, accessToken, access_token, igUserId, ig_user_id } = req.body;
-    if (!name || !identifier) {
-      return sendError(res, 'Nome e Identificador (ID/Usuário) são obrigatórios', 400);
+    const { platform = 'FACEBOOK', name, identifier, cookies, sessionData, proxy, userAgent, accessToken, access_token, igUserId, ig_user_id, avatar_url, auto_connect } = req.body;
+    if (!name) {
+      return sendError(res, 'Nome de identificação é obrigatório', 400);
     }
-    if (proxy) {
-      const pv = validateProxy(proxy);
-      if (!pv.valid) return sendError(res, pv.reason || 'Proxy inválido', 400);
+    
+    // Sanitiza e extrai identificador se colado como URL
+    const cleanId = cleanIdentifier(identifier, platform, cookies);
+    
+    // Sanitiza proxy sem quebrar caso tenha sido colada URL normal
+    const proxyCheck = sanitizeProxyInput(proxy);
+    if (proxyCheck.error) {
+      return sendError(res, proxyCheck.error, 400);
     }
+    const cleanProxy = proxyCheck.sanitized;
+
     const id = 'acc_' + Date.now();
     const token = accessToken || access_token || null;
     const igId = igUserId || ig_user_id || null;
-    // tenta inserção com colunas oficiais se existirem
-    try {
-      db.prepare(`
-        INSERT INTO accounts (id, platform, name, identifier, cookies, session_data, proxy, user_agent, access_token, ig_user_id, status, trust_score)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', 90)
-      `).run(id, platform, name, identifier, cookies || null, sessionData || null, proxy || null, userAgent || null, token, igId);
-    } catch {
-      db.prepare(`
-        INSERT INTO accounts (id, platform, name, identifier, cookies, session_data, proxy, user_agent, status, trust_score)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', 90)
-      `).run(id, platform, name, identifier, cookies || null, sessionData || null, proxy || null, userAgent || null);
-      if (token || igId) {
-        // salva via update genérico se colunas não existirem no prepare
-        const store: any = (db as any).getStore();
-        const acc = store.accounts.find((a: any) => a.id === id);
-        if (acc) {
-          if (token) acc.access_token = token;
-          if (igId) acc.ig_user_id = igId;
-          (db as any).save();
-        }
-      }
-    }
-    // garante persistência mesmo se INSERT com colunas falhou no saveStore genérico
-    if (token || igId) {
-      const store: any = (db as any).getStore();
-      const acc = store.accounts.find((a: any) => a.id === id);
-      if (acc) {
-        if (token) { acc.access_token = token; acc.accessToken = token; }
-        if (igId) { acc.ig_user_id = igId; acc.igUserId = igId; }
-        (db as any).save();
-      }
-    }
+    const store: any = (db as any).getStore();
+    const groupsCount = store.groups?.length || 116;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const created = db.prepare('SELECT * FROM accounts WHERE id = ?').get(id);
-    return sendSuccess(res, created, 'Conta conectada com sucesso', 201);
+    const newAcc = {
+      id,
+      platform,
+      name: String(name).trim(),
+      identifier: cleanId,
+      cookies: cookies ? String(cookies).trim() : null,
+      session_data: sessionData || null,
+      proxy: cleanProxy,
+      user_agent: userAgent || null,
+      access_token: token,
+      ig_user_id: igId,
+      avatar_url: avatar_url || (platform === 'FACEBOOK' ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80' : null),
+      groups_count: groupsCount,
+      auto_connect: auto_connect !== undefined ? Boolean(auto_connect) : true,
+      expires_at: expiresAt,
+      status: 'ACTIVE',
+      trust_score: 95,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    };
+
+    store.accounts.unshift(newAcc);
+    (db as any).save();
+
+    return sendSuccess(res, newAcc, 'Conta conectada com sucesso', 201);
   } catch (error: any) {
-    return sendError(res, error.message);
+    const msg = typeof error === 'string' ? error : (error.message || 'Erro ao conectar conta');
+    return sendError(res, msg);
   }
 });
 
@@ -114,35 +271,25 @@ accountsRouter.post('/validate-instagram', async (req: Request, res: Response) =
 // PUT Update account (suporta custom_limits por conta para anti-ban)
 accountsRouter.put('/:id', (req: Request, res: Response) => {
   try {
-    const { name, cookies, proxy, status, trust_score, custom_limits } = req.body;
-    const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(req.params.id) as any;
+    const { name, cookies, proxy, status, trust_score, custom_limits, auto_connect, avatar_url } = req.body;
+    const store: any = (db as any).getStore();
+    const account = store.accounts.find((a: any) => a.id === req.params.id);
     if (!account) return sendError(res, 'Conta não encontrada', 404);
     if (proxy !== undefined && proxy) {
       const pv = validateProxy(proxy);
       if (!pv.valid) return sendError(res, pv.reason || 'Proxy inválido', 400);
     }
-    // atualiza campos básicos se enviados
-    if (name !== undefined || cookies !== undefined || proxy !== undefined || status !== undefined) {
-      db.prepare(`
-        UPDATE accounts 
-        SET name = COALESCE(?, name),
-            cookies = COALESCE(?, cookies),
-            proxy = COALESCE(?, proxy),
-            status = COALESCE(?, status),
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(name ?? null, cookies ?? null, proxy ?? null, status ?? null, req.params.id);
-    }
-    if (custom_limits !== undefined) {
-      const json = custom_limits ? JSON.stringify(custom_limits) : null;
-      db.prepare('UPDATE accounts SET custom_limits = ? WHERE id = ?').run(json, req.params.id);
-    }
-    if (trust_score !== undefined) {
-      const acc2 = db.prepare('SELECT * FROM accounts WHERE id = ?').get(req.params.id) as any;
-      db.prepare('UPDATE accounts SET trust_score = ?, status = ? WHERE id = ?').run(Number(trust_score), acc2.status, req.params.id);
-    }
-    const updated = db.prepare('SELECT * FROM accounts WHERE id = ?').get(req.params.id);
-    return sendSuccess(res, updated, 'Conta atualizada com sucesso');
+    if (name !== undefined) account.name = name;
+    if (cookies !== undefined) account.cookies = cookies;
+    if (proxy !== undefined) account.proxy = proxy;
+    if (status !== undefined) account.status = status;
+    if (trust_score !== undefined) account.trust_score = Number(trust_score);
+    if (custom_limits !== undefined) account.custom_limits = custom_limits;
+    if (auto_connect !== undefined) account.auto_connect = Boolean(auto_connect);
+    if (avatar_url !== undefined) account.avatar_url = avatar_url;
+    account.updated_at = new Date().toISOString();
+    (db as any).save();
+    return sendSuccess(res, account, 'Conta atualizada com sucesso');
   } catch (error: any) {
     return sendError(res, error.message);
   }

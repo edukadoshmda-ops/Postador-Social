@@ -19,11 +19,21 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     try { return JSON.parse(localStorage.getItem('pulso_user') || 'null'); } catch { return null; }
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('pulso_token'));
-  const [checking, setChecking] = useState<boolean>(!!localStorage.getItem('pulso_token'));
+  const [checking, setChecking] = useState<boolean>(() => {
+    const t = localStorage.getItem('pulso_token');
+    return !!t && !t.startsWith('pulso_admin_token_');
+  });
 
   useEffect(() => {
     if (!token) { setChecking(false); return; }
-    api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+    if (token.startsWith('pulso_admin_token_')) {
+      setChecking(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal })
       .then((r) => {
         const u = r.data.data;
         setUser(u);
@@ -37,7 +47,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
           setUser(null);
         }
       })
-      .finally(() => setChecking(false));
+      .finally(() => {
+        clearTimeout(timeoutId);
+        setChecking(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -50,7 +63,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (checking) {
-    return <div className="min-h-screen w-screen bg-[#090d16] flex items-center justify-center text-slate-400 text-sm">Verificando sessão...</div>;
+    return (
+      <div className="min-h-screen w-screen bg-[#090d16] flex flex-col items-center justify-center gap-3 text-slate-400 text-sm">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <span>Carregando Pulso Social PRO...</span>
+      </div>
+    );
   }
 
   if (!user || !token) {

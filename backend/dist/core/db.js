@@ -25,6 +25,7 @@ let store = {
     group_lists: [],
     groups: [],
     creative_library: [],
+    library_folders: [],
     campaigns: [],
     campaign_items: [],
     warmer_logs: [],
@@ -38,6 +39,8 @@ function loadStore() {
             store = JSON.parse(data);
             if (!Array.isArray(store.users))
                 store.users = [];
+            if (!Array.isArray(store.library_folders))
+                store.library_folders = [];
         }
         else {
             saveStore();
@@ -60,7 +63,7 @@ exports.db = {
     getStore: () => store,
     save: () => saveStore(),
     prepare: (query) => {
-        const q = query.trim();
+        const q = query.trim().replace(/\s+/g, ' ');
         return {
             all: (...params) => {
                 loadStore();
@@ -98,6 +101,13 @@ exports.db = {
                 }
                 if (q.includes('FROM creative_library')) {
                     return store.creative_library;
+                }
+                if (q.includes('FROM library_folders')) {
+                    const folders = store.library_folders || [];
+                    return folders.map((f) => {
+                        const count = (store.creative_library || []).filter((c) => c.folder_id === f.id || (!c.folder_id && f.name === 'Promoções')).length;
+                        return { ...f, count };
+                    });
                 }
                 if (q.includes('FROM warmer_logs')) {
                     return store.warmer_logs.map((w) => {
@@ -160,14 +170,50 @@ exports.db = {
                 if (q.includes('FROM accounts WHERE id = ?')) {
                     return store.accounts.find((a) => a.id === params[0]) || null;
                 }
-                if (q.includes('FROM group_lists WHERE id = ?')) {
-                    return store.group_lists.find((gl) => gl.id === params[0]) || null;
+                if (q.includes('FROM group_lists')) {
+                    if (q.includes('WHERE id = ?')) {
+                        return store.group_lists.find((gl) => gl.id === params[0]) || null;
+                    }
+                    if (q.includes('WHERE name = ?')) {
+                        return store.group_lists.find((gl) => gl.name === params[0]) || null;
+                    }
+                    if (q.includes("name = 'Grupos Aquecidos'") || q.includes("Grupos Aquecidos")) {
+                        return store.group_lists.find((gl) => gl.name.includes('Grupos Aquecidos')) || null;
+                    }
+                    if (params.length > 0) {
+                        return store.group_lists.find((gl) => gl.id === params[0] || gl.name === params[0]) || null;
+                    }
+                    return store.group_lists[0] || null;
                 }
                 if (q.includes('FROM groups WHERE id = ?')) {
                     return store.groups.find((g) => g.id === params[0]) || null;
                 }
                 if (q.includes('FROM creative_library WHERE id = ?')) {
                     return store.creative_library.find((cl) => cl.id === params[0]) || null;
+                }
+                if (q.includes('FROM library_folders')) {
+                    const folders = store.library_folders || [];
+                    if (q.includes('WHERE id = ?')) {
+                        const f = folders.find((f) => f.id === params[0]);
+                        if (!f)
+                            return null;
+                        const count = (store.creative_library || []).filter((c) => c.folder_id === f.id || (!c.folder_id && f.name === 'Promoções')).length;
+                        return { ...f, count };
+                    }
+                    if (q.includes('WHERE name = ?')) {
+                        const f = folders.find((f) => f.name.toLowerCase() === String(params[0]).toLowerCase());
+                        if (!f)
+                            return null;
+                        const count = (store.creative_library || []).filter((c) => c.folder_id === f.id || (!c.folder_id && f.name === 'Promoções')).length;
+                        return { ...f, count };
+                    }
+                    if (params.length > 0) {
+                        const f = folders.find((f) => f.id === params[0] || f.name === params[0]);
+                        if (!f)
+                            return null;
+                        return f;
+                    }
+                    return folders[0] || null;
                 }
                 return null;
             },
@@ -250,13 +296,17 @@ exports.db = {
                 }
                 else if (q.includes('UPDATE campaigns SET status = ?')) {
                     const c = store.campaigns.find((c) => c.id === params[1]);
-                    if (c)
+                    if (c) {
                         c.status = params[0];
+                        saveStore();
+                    }
                 }
                 else if (q.includes('UPDATE campaigns SET current_target_name = ?')) {
                     const c = store.campaigns.find((c) => c.id === params[1]);
-                    if (c)
+                    if (c) {
                         c.current_target_name = params[0];
+                        saveStore();
+                    }
                 }
                 else if (q.includes('UPDATE campaigns SET completed_targets = ?')) {
                     const [completed, successful, pending, failed, progress, id] = params;
@@ -267,9 +317,10 @@ exports.db = {
                         c.pending_posts = pending;
                         c.failed_posts = failed;
                         c.progress_percent = progress;
+                        saveStore();
                     }
                 }
-                else if (q.includes('UPDATE campaign_items SET status = ?') && q.includes('post_id = ?')) {
+                else if (q.includes('UPDATE campaign_items') && q.includes('post_id')) {
                     const [status, postId, postUrl, error, text, delay, id] = params;
                     const item = store.campaign_items.find((ci) => ci.id === id);
                     if (item) {
@@ -280,12 +331,33 @@ exports.db = {
                         item.posted_text = text;
                         item.execution_delay_seconds = delay;
                         item.executed_at = new Date().toISOString();
+                        saveStore();
                     }
                 }
-                else if (q.includes('UPDATE campaign_items SET status = ?')) {
-                    const item = store.campaign_items.find((ci) => ci.id === params[1]);
-                    if (item)
-                        item.status = params[0];
+                else if (q.includes('UPDATE campaign_items') && q.includes("status = 'IN_PROGRESS'")) {
+                    const id = params[0];
+                    const item = store.campaign_items.find((ci) => ci.id === id);
+                    if (item) {
+                        item.status = 'IN_PROGRESS';
+                        saveStore();
+                    }
+                }
+                else if (q.includes('UPDATE campaign_items') && q.includes("status = 'QUEUED'")) {
+                    const id = params[0];
+                    const item = store.campaign_items.find((ci) => ci.id === id);
+                    if (item) {
+                        item.status = 'QUEUED';
+                        saveStore();
+                    }
+                }
+                else if (q.includes('UPDATE campaign_items') && q.includes('status = ?')) {
+                    const status = params[0];
+                    const id = params.length > 1 ? params[1] : params[0];
+                    const item = store.campaign_items.find((ci) => ci.id === id);
+                    if (item) {
+                        item.status = status;
+                        saveStore();
+                    }
                 }
                 else if (q.includes('INSERT INTO accounts') && q.includes('access_token')) {
                     const [id, platform, name, identifier, cookies, sessionData, proxy, userAgent, accessToken, igUserId] = params;
@@ -353,7 +425,7 @@ exports.db = {
                     }
                 }
                 else if (q.includes('INSERT INTO creative_library') || q.includes('INSERT OR IGNORE INTO creative_library')) {
-                    const [id, title, category, text, spintax, mediaType, mediaUrls, linkUrl, tags] = params;
+                    const [id, title, category, text, spintax, mediaType, mediaUrls, linkUrl, tags, folderId] = params;
                     store.creative_library.push({
                         id,
                         title,
@@ -364,8 +436,61 @@ exports.db = {
                         media_urls: mediaUrls || null,
                         link_url: linkUrl || null,
                         tags: tags || null,
+                        folder_id: folderId || null,
                         created_at: new Date().toISOString(),
                     });
+                }
+                else if (q.includes('INSERT INTO library_folders')) {
+                    const [id, name, color, configJson] = params;
+                    let config = {};
+                    try {
+                        config = typeof configJson === 'string' ? JSON.parse(configJson) : (configJson || {});
+                    }
+                    catch { }
+                    if (!store.library_folders)
+                        store.library_folders = [];
+                    const existsIdx = store.library_folders.findIndex((f) => f.id === id);
+                    const newF = {
+                        id,
+                        name,
+                        color: color || '#4F46E5',
+                        config: config || {},
+                        created_at: new Date().toISOString()
+                    };
+                    if (existsIdx >= 0) {
+                        store.library_folders[existsIdx] = { ...store.library_folders[existsIdx], ...newF };
+                    }
+                    else {
+                        store.library_folders.unshift(newF);
+                    }
+                }
+                else if (q.includes('UPDATE library_folders SET config = ?')) {
+                    const [configJson, id] = params;
+                    let config = {};
+                    try {
+                        config = typeof configJson === 'string' ? JSON.parse(configJson) : (configJson || {});
+                    }
+                    catch { }
+                    const f = (store.library_folders || []).find((f) => f.id === id);
+                    if (f)
+                        f.config = config;
+                }
+                else if (q.includes('UPDATE library_folders SET name = ?, color = ?')) {
+                    const [name, color, id] = params;
+                    const f = (store.library_folders || []).find((f) => f.id === id);
+                    if (f) {
+                        f.name = name;
+                        f.color = color;
+                    }
+                }
+                else if (q.includes('DELETE FROM library_folders WHERE id = ?')) {
+                    store.library_folders = (store.library_folders || []).filter((f) => f.id !== params[0]);
+                }
+                else if (q.includes('UPDATE creative_library SET folder_id = ?')) {
+                    const [folderId, id] = params;
+                    const item = (store.creative_library || []).find((c) => c.id === id);
+                    if (item)
+                        item.folder_id = folderId;
                 }
                 else if (q.includes('INSERT INTO warmer_logs')) {
                     const [id, accountId, actionType, status, details] = params;
@@ -383,6 +508,12 @@ exports.db = {
                     const c = store.campaigns.find((c) => c.id === id);
                     if (c)
                         c.schedule_json = scheduleJson;
+                }
+                else if (q.includes('UPDATE accounts SET cookies = ?')) {
+                    const [cookies, id] = params;
+                    const acc = store.accounts.find((a) => a.id === id);
+                    if (acc)
+                        acc.cookies = cookies;
                 }
                 else if (q.includes('UPDATE accounts SET custom_limits = ?')) {
                     const [customLimits, id] = params;
