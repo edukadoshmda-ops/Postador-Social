@@ -1133,13 +1133,13 @@ export default function PostadorPage() {
         {/* COLUNA DA DIREITA: CAMPANHAS (Exatamente igual ao print da imagem) */}
         <div className="lg:col-span-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-white">Campanhas</h2>
+            <h2 className="text-base font-bold text-white tracking-wide">Campanhas</h2>
             <button
               type="button"
               onClick={loadCampaigns}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#121b2d] border border-slate-700 hover:bg-[#1a253c] rounded-xl text-xs font-semibold text-slate-300 transition-colors shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1b2438] border border-slate-600/60 hover:bg-[#25324d] rounded-xl text-xs font-semibold text-slate-200 transition-colors shadow-xs cursor-pointer"
             >
-              <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+              <RefreshCw className="w-3.5 h-3.5 text-slate-300" />
               <span>Atualizar</span>
             </button>
           </div>
@@ -1158,37 +1158,37 @@ export default function PostadorPage() {
               return (
                 <div
                   key={c.id}
-                  className="bg-[#121b2d] border border-[#1e293b] rounded-2xl p-5 space-y-3.5 shadow-lg transition-all"
+                  className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-4 sm:p-5 space-y-3.5 shadow-md transition-all"
                 >
                   {/* Linha Superior: Bolinha + Nome da Campanha + Botões [Play/Pause] [Copy] [Trash] */}
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-white shrink-0" />
-                      <h3 className="font-bold text-sm text-white uppercase tracking-wide truncate">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                      <h3 className="font-bold text-xs sm:text-sm text-white uppercase tracking-wider truncate">
                         {c.name}
                       </h3>
                     </div>
 
-                    {/* Grupo de botões à direita (Quadrados arredondados com borda) */}
+                    {/* Grupo de botões à direita (Quadrados arredondados com borda prateada/cinza clara como na Imagem) */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       {/* Play ou Pause */}
                       {!isRunning ? (
                         <button
                           type="button"
                           onClick={() => handleStart(c.id)}
-                          className="w-8 h-8 rounded-xl bg-[#1b2537] hover:bg-[#25334a] border border-slate-700 text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                          className="w-8 h-8 rounded-xl bg-[#1b253b]/80 hover:bg-[#25334d] border border-slate-500/70 text-slate-200 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
                           title="Iniciar campanha"
                         >
-                          <Play className="w-3.5 h-3.5 fill-current" />
+                          <Play className="w-3.5 h-3.5 text-slate-300 ml-0.5" />
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handlePause(c.id)}
-                          className="w-8 h-8 rounded-xl bg-[#1b2537] hover:bg-[#25334a] border border-slate-700 text-amber-400 flex items-center justify-center transition-colors cursor-pointer"
+                          className="w-8 h-8 rounded-xl bg-[#1b253b]/80 hover:bg-[#25334d] border border-slate-500/70 text-slate-200 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
                           title="Pausar campanha"
                         >
-                          <Pause className="w-3.5 h-3.5 fill-current" />
+                          <Pause className="w-3.5 h-3.5 text-slate-300" />
                         </button>
                       )}
 
@@ -1196,17 +1196,17 @@ export default function PostadorPage() {
                       <button
                         type="button"
                         onClick={() => handleDuplicate(c)}
-                        className="w-8 h-8 rounded-xl bg-[#1b2537] hover:bg-[#25334a] border border-slate-700 text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                        className="w-8 h-8 rounded-xl bg-[#1b253b]/80 hover:bg-[#25334d] border border-slate-500/70 text-slate-200 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
                         title="Duplicar campanha"
                       >
-                        <Copy className="w-3.5 h-3.5" />
+                        <Copy className="w-3.5 h-3.5 text-slate-300" />
                       </button>
 
                       {/* Excluir */}
                       <button
                         type="button"
                         onClick={() => handleDelete(c.id)}
-                        className="w-8 h-8 rounded-xl bg-[#1b2537] hover:bg-rose-950/40 border border-slate-700 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
+                        className="w-8 h-8 rounded-xl bg-[#1b253b]/80 hover:bg-rose-950/40 border border-slate-500/70 text-slate-300 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
                         title="Excluir campanha"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1215,44 +1215,44 @@ export default function PostadorPage() {
                   </div>
 
                   {/* Linha de Status & Contadores */}
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-2.5 text-xs">
                     <span
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                         isCompleted
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          ? 'bg-[#064e3b]/80 text-[#34d399] border border-[#059669]/60'
                           : isRunning
-                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse'
-                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          ? 'bg-blue-950/80 text-blue-400 border border-blue-500/60 animate-pulse'
+                          : 'bg-amber-950/80 text-amber-400 border border-amber-500/60'
                       }`}
                     >
                       {isCompleted ? 'Concluído' : isRunning ? 'Em andamento' : 'Pausado'}
                     </span>
-                    <span className="text-slate-400 font-medium text-[11px]">
+                    <span className="text-slate-400 text-xs">
                       {sent}/{total} enviados · {sent} OK · {failed} falhas
                     </span>
                   </div>
 
-                  {/* Barra de Progresso azul/índigo preenchida */}
-                  <div className="w-full h-1.5 bg-[#0b1021] rounded-full overflow-hidden">
+                  {/* Barra de Progresso azul/violeta sólida como na Imagem */}
+                  <div className="w-full h-1.5 bg-[#080d1a] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#5054d4] to-cyan-400 rounded-full transition-all duration-300"
-                      style={{ width: `${isCompleted ? 100 : c.progress_percent || 10}%` }}
+                      className="h-full bg-[#5b6cf9] rounded-full transition-all duration-300"
+                      style={{ width: `${isCompleted ? 100 : Math.max(c.progress_percent || 0, 5)}%` }}
                     />
                   </div>
 
                   {/* Mensagem de Progresso / Conclusão */}
-                  <div className="text-xs text-slate-300 font-medium">
+                  <div className="text-xs text-slate-400 font-normal">
                     {c.current_target_name ? c.current_target_name : `Concluído: ${sent}/${total} postados.`}
                   </div>
 
-                  {/* Botão Pílula: Ver envios (X) */}
-                  <div>
+                  {/* Botão Pílula: > Ver envios (X) */}
+                  <div className="pt-1">
                     <button
                       type="button"
                       onClick={() => handleViewItems(c)}
-                      className="px-3.5 py-1.5 rounded-full bg-[#1b2537] hover:bg-[#25334a] border border-slate-700 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-lg bg-[#1e2638] hover:bg-[#28334a] border border-[#2d384e] text-xs font-semibold text-[#818cf8] hover:text-[#93c5fd] flex items-center gap-2 transition-colors cursor-pointer"
                     >
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-bold text-[#818cf8] text-sm leading-none">&gt;</span>
                       <span>Ver envios ({total})</span>
                     </button>
                   </div>
