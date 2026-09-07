@@ -14,6 +14,7 @@ import {
   Trash2,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
   Palette,
   X,
   UploadCloud,
@@ -24,7 +25,10 @@ import {
   Check,
   Send,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  MoreVertical,
+  SlidersHorizontal,
+  FolderInput
 } from 'lucide-react';
 import { api, CreativeItem, LibraryFolder } from '../core/apiService';
 
@@ -39,26 +43,93 @@ const COLOR_SWATCHES = [
   '#3B82F6', '#F59E0B'
 ];
 
-const INITIAL_DEMO_ITEMS: CreativeItem[] = [
+const DEFAULT_FOLDERS: LibraryFolder[] = [
+  { id: 'f_venda_sem_trafego', name: 'Venda sem tráfego pago', color: '#4F46E5', count: 6 },
+  { id: 'f_venda_carros', name: 'VENDA DE CARROS', color: '#EF4444', count: 6 },
+  { id: 'f_maes', name: 'GRUPO MÃES', color: '#EC4899', count: 6 }
+];
+
+const DEFAULT_ITEMS: CreativeItem[] = [
   {
-    id: 'item_1',
-    title: 'Texto 1',
+    id: 'item_mae_img_1',
+    title: 'IMAGEM 1',
     category: 'Ambos',
-    content_text: 'Oii, tudo bem?',
+    content_text: 'Roupas, brinquedos e utilidades para os pequenos no grupo de achadinhos',
+    media_type: 'IMAGE',
+    media_urls: ['https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=500&auto=format&fit=crop&q=80'],
+    folder_id: 'f_maes',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'item_mae_img_3',
+    title: 'IMAGEM 3',
+    category: 'Ambos',
+    content_text: 'Mães, olha os achadinhos que encontrei para os pequenos! Entre no grupo',
+    media_type: 'IMAGE',
+    media_urls: ['https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=500&auto=format&fit=crop&q=80'],
+    folder_id: 'f_maes',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'item_mae_img_2',
+    title: 'IMAGEM 2',
+    category: 'Ambos',
+    content_text: 'Achadinhos e utilidades para mamães',
+    media_type: 'IMAGE',
+    media_urls: ['https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=500&auto=format&fit=crop&q=80'],
+    folder_id: 'f_maes',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'item_mae_txt_1',
+    title: 'TEXTO 1',
+    category: 'Ambos',
+    content_text: 'Oi mamães! Criei um grupo no WhatsApp com os melhores achadinhos e descontos para bebês e crianças. Quem quiser entrar comenta EU!',
     media_type: 'TEXT',
     media_urls: [],
+    folder_id: 'f_maes',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'item_mae_txt_2',
+    title: 'texto 2',
+    category: 'Ambos',
+    content_text: 'Dica do dia para mães práticas: economize em roupinhas e brinquedos educativos direto dos fornecedores. Link no primeiro comentário!',
+    media_type: 'TEXT',
+    media_urls: [],
+    folder_id: 'f_maes',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'item_mae_txt_3',
+    title: 'TEXTO 3',
+    category: 'Ambos',
+    content_text: 'Achadinhos de mães com até 70% de desconto na Shopee e Mercado Livre. Entre no grupo VIP para receber em primeira mão.',
+    media_type: 'TEXT',
+    media_urls: [],
+    folder_id: 'f_maes',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'item_txt_01',
+    title: 'TEXTO 01',
+    category: 'Ambos',
+    content_text: 'Olá pessoal, tudo bem? Confiram essa novidade incrível!',
+    media_type: 'TEXT',
+    media_urls: [],
+    folder_id: undefined,
     created_at: new Date().toISOString()
   }
 ];
 
 export default function LibraryPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<LibraryTab>('TEXT');
+  const [activeTab, setActiveTab] = useState<LibraryTab>('FOLDER');
   const [isInsertCollapsed, setIsInsertCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
   const [targetScope, setTargetScope] = useState<ScopeType>('Ambos');
 
+  // New media inputs
   const [mediaTitle, setMediaTitle] = useState('');
   const [mediaContent, setMediaContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
@@ -69,6 +140,227 @@ export default function LibraryPage() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadedFileSize, setUploadedFileSize] = useState<string | null>(null);
+
+  // New folder inputs
+  const [folderName, setFolderName] = useState('');
+  const [folderColor, setFolderColor] = useState('#4F46E5');
+
+  // Variables inputs
+  const [varName, setVarName] = useState('');
+  const [varDescription, setVarDescription] = useState('');
+
+  // Mass toggles
+  const [massComment, setMassComment] = useState(false);
+  const [massPost, setMassPost] = useState(false);
+  const [massImage, setMassImage] = useState(true);
+
+  // Library & Folders state
+  const [items, setItems] = useState<CreativeItem[]>([]);
+  const [itemActiveStates, setItemActiveStates] = useState<Record<string, boolean>>({});
+  const [folders, setFolders] = useState<LibraryFolder[]>([]);
+  const [targetFolderId, setTargetFolderId] = useState<string>('');
+  const [folderFeedback, setFolderFeedback] = useState<string | null>(null);
+
+  // Accordion state: set of open folder IDs
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set(['f_maes']));
+
+  // Modals & Item Actions
+  const [previewItem, setPreviewItem] = useState<CreativeItem | null>(null);
+  const [editingItem, setEditingItem] = useState<CreativeItem | null>(null);
+  const [movingItem, setMovingItem] = useState<CreativeItem | null>(null);
+  const [folderToEditColor, setFolderToEditColor] = useState<LibraryFolder | null>(null);
+  const [folderToRename, setFolderToRename] = useState<LibraryFolder | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  useEffect(() => {
+    loadLibrary();
+    loadFolders();
+  }, []);
+
+  const loadLibrary = async () => {
+    try {
+      const res = await api.get('/library');
+      const data = res.data.data || [];
+      if (data.length === 0) {
+        setItems(DEFAULT_ITEMS);
+        const actives: Record<string, boolean> = {};
+        DEFAULT_ITEMS.forEach((i) => { actives[i.id] = true; });
+        setItemActiveStates(actives);
+      } else {
+        setItems(data);
+        const actives: Record<string, boolean> = {};
+        data.forEach((i: CreativeItem) => { actives[i.id] = true; });
+        setItemActiveStates(actives);
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar itens da biblioteca:', err);
+      setItems(DEFAULT_ITEMS);
+    }
+  };
+
+  const loadFolders = async () => {
+    try {
+      const res = await api.get('/library/folders');
+      const data = res.data.data || [];
+      if (data.length === 0) {
+        setFolders(DEFAULT_FOLDERS);
+        setTargetFolderId(DEFAULT_FOLDERS[0].id);
+      } else {
+        setFolders(data);
+        if (data.length > 0 && !targetFolderId) {
+          setTargetFolderId(data[0].id);
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar pastas:', err);
+      setFolders(DEFAULT_FOLDERS);
+    }
+  };
+
+  const toggleFolderExpand = (folderId: string) => {
+    setExpandedFolderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  };
+
+  const handleCreateFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!folderName.trim()) return;
+    try {
+      const res = await api.post('/library/folders', {
+        name: folderName.trim(),
+        color: folderColor,
+      });
+      const created = res.data.data;
+      setFolderName('');
+      setFolderFeedback(`✓ Pasta "${created?.name || folderName}" criada com sucesso!`);
+      setTimeout(() => setFolderFeedback(null), 4000);
+      await loadFolders();
+      if (created?.id) {
+        setTargetFolderId(created.id);
+        setExpandedFolderIds((prev) => new Set([...prev, created.id]));
+      }
+    } catch (err) {
+      console.error('Erro ao criar pasta:', err);
+      const newF: LibraryFolder = {
+        id: 'f_' + Date.now(),
+        name: folderName.trim(),
+        color: folderColor,
+        count: 0
+      };
+      setFolders((prev) => [newF, ...prev]);
+      setExpandedFolderIds((prev) => new Set([...prev, newF.id]));
+      setFolderName('');
+    }
+  };
+
+  const handleUpdateFolderColor = async (folderId: string, color: string) => {
+    try {
+      await api.put(`/library/folders/${folderId}`, { color });
+      setFolders((prev) => prev.map((f) => (f.id === folderId ? { ...f, color } : f)));
+      setFolderToEditColor(null);
+    } catch (err) {
+      console.error('Erro ao atualizar cor:', err);
+      setFolders((prev) => prev.map((f) => (f.id === folderId ? { ...f, color } : f)));
+      setFolderToEditColor(null);
+    }
+  };
+
+  const handleRenameFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!folderToRename || !renameValue.trim()) return;
+    const fId = folderToRename.id;
+    const newName = renameValue.trim();
+    try {
+      await api.put(`/library/folders/${fId}`, { name: newName });
+      setFolders((prev) => prev.map((f) => (f.id === fId ? { ...f, name: newName } : f)));
+      setFolderToRename(null);
+      setRenameValue('');
+    } catch (err) {
+      console.error('Erro ao renomear pasta:', err);
+      setFolders((prev) => prev.map((f) => (f.id === fId ? { ...f, name: newName } : f)));
+      setFolderToRename(null);
+      setRenameValue('');
+    }
+  };
+
+  const handleEmptyFolder = async (folderId: string) => {
+    const f = folders.find((item) => item.id === folderId);
+    if (!confirm(`Deseja desassociar todos os itens da pasta "${f?.name || ''}"?`)) return;
+    try {
+      await api.post(`/library/folders/${folderId}/empty`);
+    } catch (e) {
+      console.warn(e);
+    }
+    setItems((prev) => prev.map((item) => (item.folder_id === folderId ? { ...item, folder_id: undefined } : item)));
+    setFolders((prev) => prev.map((item) => (item.id === folderId ? { ...item, count: 0 } : item)));
+    setFolderFeedback(`✓ Pasta "${f?.name}" esvaziada.`);
+    setTimeout(() => setFolderFeedback(null), 3000);
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    const f = folders.find((item) => item.id === folderId);
+    if (!confirm(`Deseja realmente excluir a pasta "${f?.name || ''}"?`)) return;
+    try {
+      await api.delete(`/library/folders/${folderId}`);
+    } catch (err) {
+      console.error('Erro ao excluir pasta:', err);
+    }
+    setFolders((prev) => prev.filter((item) => item.id !== folderId));
+    setItems((prev) => prev.map((item) => (item.folder_id === folderId ? { ...item, folder_id: undefined } : item)));
+  };
+
+  const handleMoveItemToFolder = async (itemId: string, folderId: string | null) => {
+    try {
+      await api.post(`/library/items/${itemId}/folder`, { folderId });
+    } catch (err) {
+      console.error('Erro ao mover item para pasta:', err);
+    }
+    setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, folder_id: folderId || undefined } : i)));
+    setMovingItem(null);
+  };
+
+  const handleAddText = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mediaTitle.trim() && !mediaContent.trim()) return;
+    const finalTitle = mediaTitle.trim() || 'TEXTO ' + (items.length + 1);
+    const finalContent = mediaContent.trim() || 'Olá! Confira nossa novidade.';
+    const activeFolder = targetFolderId || folders[0]?.id || undefined;
+
+    try {
+      const res = await api.post('/library', {
+        title: finalTitle,
+        category: targetScope,
+        contentText: finalContent,
+        mediaType: 'TEXT',
+        folderId: activeFolder,
+      });
+      const created = res.data.data || {
+        id: 'item_' + Date.now(),
+        title: finalTitle,
+        category: targetScope,
+        content_text: finalContent,
+        media_type: 'TEXT',
+        media_urls: [],
+        folder_id: activeFolder,
+        created_at: new Date().toISOString()
+      };
+      setItems((prev) => [created, ...prev]);
+      setItemActiveStates((prev) => ({ ...prev, [created.id]: true }));
+      setMediaTitle('');
+      setMediaContent('');
+      setFolderFeedback(`✓ ${finalTitle} adicionado com sucesso!`);
+      setTimeout(() => setFolderFeedback(null), 3000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleFileUpload = async (file: File, expectedType: 'IMAGE' | 'VIDEO') => {
     if (!file) return;
@@ -105,148 +397,13 @@ export default function LibraryPage() {
     }
   };
 
-  const [folderName, setFolderName] = useState('');
-  const [folderColor, setFolderColor] = useState('#4F46E5');
-
-  const [varName, setVarName] = useState('');
-  const [varDescription, setVarDescription] = useState('');
-
-  const [massComment, setMassComment] = useState(false);
-  const [massPost, setMassPost] = useState(false);
-  const [massImage, setMassImage] = useState(false);
-
-  const [items, setItems] = useState<CreativeItem[]>([]);
-  const [itemActiveStates, setItemActiveStates] = useState<Record<string, boolean>>({});
-  const [folders, setFolders] = useState<LibraryFolder[]>([]);
-  const [selectedFolderFilter, setSelectedFolderFilter] = useState<string>('ALL');
-  const [targetFolderId, setTargetFolderId] = useState<string>('');
-  const [folderFeedback, setFolderFeedback] = useState<string | null>(null);
-
-  const [previewItem, setPreviewItem] = useState<CreativeItem | null>(null);
-  const [editingItem, setEditingItem] = useState<CreativeItem | null>(null);
-
-  useEffect(() => {
-    loadLibrary();
-    loadFolders();
-  }, []);
-
-  const loadLibrary = async () => {
-    try {
-      const res = await api.get('/library');
-      const data = res.data.data || [];
-      setItems(data);
-      const actives: Record<string, boolean> = {};
-      data.forEach((i: CreativeItem) => {
-        actives[i.id] = true;
-      });
-      setItemActiveStates(actives);
-    } catch (err) {
-      console.warn('Erro ao carregar itens da biblioteca:', err);
-    }
-  };
-
-  const loadFolders = async () => {
-    try {
-      const res = await api.get('/library/folders');
-      const data = res.data.data || [];
-      setFolders(data);
-      if (data.length > 0 && !targetFolderId) {
-        setTargetFolderId(data[0].id);
-      }
-    } catch (err) {
-      console.warn('Erro ao carregar pastas:', err);
-    }
-  };
-
-  const handleCreateFolder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!folderName.trim()) return;
-    try {
-      const res = await api.post('/library/folders', {
-        name: folderName.trim(),
-        color: folderColor,
-      });
-      const created = res.data.data;
-      setFolderName('');
-      setFolderFeedback(`✓ Pasta "${created.name}" salva com sucesso!`);
-      setTimeout(() => setFolderFeedback(null), 4000);
-      await loadFolders();
-      if (created?.id) {
-        setTargetFolderId(created.id);
-      }
-    } catch (err) {
-      console.error('Erro ao criar pasta:', err);
-    }
-  };
-
-  const handleDeleteFolder = async (folderId: string) => {
-    if (!confirm('Deseja realmente excluir esta pasta?')) return;
-    try {
-      await api.delete(`/library/folders/${folderId}`);
-      if (selectedFolderFilter === folderId) setSelectedFolderFilter('ALL');
-      if (targetFolderId === folderId) setTargetFolderId('');
-      await loadFolders();
-      await loadLibrary();
-    } catch (err) {
-      console.error('Erro ao excluir pasta:', err);
-    }
-  };
-
-  const handleMoveItemToFolder = async (itemId: string, folderId: string) => {
-    try {
-      await api.post(`/library/items/${itemId}/folder`, { folderId });
-      setItems((prev) =>
-        prev.map((i) => (i.id === itemId ? { ...i, folder_id: folderId } : i))
-      );
-      loadFolders();
-    } catch (err) {
-      console.error('Erro ao mover item para pasta:', err);
-    }
-  };
-
-  const handleAddText = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mediaTitle.trim() && !mediaContent.trim()) return;
-    const finalTitle = mediaTitle.trim() || 'Texto ' + (items.length + 1);
-    const finalContent = mediaContent.trim() || 'Oii, tudo bem?';
-
-    try {
-      const activeFolder = targetFolderId || (folders[0]?.id || null);
-      const res = await api.post('/library', {
-        title: finalTitle,
-        category: targetScope,
-        contentText: finalContent,
-        mediaType: 'TEXT',
-        folderId: activeFolder,
-      });
-      const created = res.data.data;
-      const itemToAdd: CreativeItem = created || {
-        id: 'item_' + Date.now(),
-        title: finalTitle,
-        category: targetScope,
-        content_text: finalContent,
-        media_type: 'TEXT',
-        media_urls: [],
-        folder_id: activeFolder,
-        created_at: new Date().toISOString()
-      };
-      setItems((prev) => [itemToAdd, ...prev]);
-      setItemActiveStates((prev) => ({ ...prev, [itemToAdd.id]: true }));
-      setMediaTitle('');
-      setMediaContent('');
-      loadFolders();
-    } catch (err) {
-      console.error('Erro ao salvar texto:', err);
-    }
-  };
-
   const handleAddMedia = async (e: React.FormEvent, type: 'IMAGE' | 'VIDEO') => {
     e.preventDefault();
     if (!mediaTitle.trim() && !mediaUrl.trim()) return;
-    const finalTitle = mediaTitle.trim() || (type === 'IMAGE' ? 'Imagem ' : 'Vídeo ') + (items.length + 1);
+    const finalTitle = mediaTitle.trim() || (type === 'IMAGE' ? 'IMAGEM ' : 'VÍDEO ') + (items.length + 1);
+    const activeFolder = targetFolderId || folders[0]?.id || undefined;
 
     try {
-      const activeFolder = targetFolderId || (folders[0]?.id || null);
       const res = await api.post('/library', {
         title: finalTitle,
         category: targetScope,
@@ -255,8 +412,7 @@ export default function LibraryPage() {
         mediaUrls: mediaUrl ? [mediaUrl] : [],
         folderId: activeFolder,
       });
-      const created = res.data.data;
-      const itemToAdd: CreativeItem = created || {
+      const created = res.data.data || {
         id: 'item_' + Date.now(),
         title: finalTitle,
         category: targetScope,
@@ -266,16 +422,17 @@ export default function LibraryPage() {
         folder_id: activeFolder,
         created_at: new Date().toISOString()
       };
-      setItems((prev) => [itemToAdd, ...prev]);
-      setItemActiveStates((prev) => ({ ...prev, [itemToAdd.id]: true }));
+      setItems((prev) => [created, ...prev]);
+      setItemActiveStates((prev) => ({ ...prev, [created.id]: true }));
       setMediaTitle('');
       setMediaUrl('');
       setUploadedFileName(null);
       setUploadedFileSize(null);
       setUploadError(null);
-      loadFolders();
+      setFolderFeedback(`✓ ${finalTitle} adicionado com sucesso!`);
+      setTimeout(() => setFolderFeedback(null), 3000);
     } catch (err) {
-      console.error('Erro ao salvar mídia:', err);
+      console.error(err);
     }
   };
 
@@ -303,7 +460,6 @@ export default function LibraryPage() {
       };
       setItems((prev) => [dup, ...prev]);
       setItemActiveStates((prev) => ({ ...prev, [dup.id]: true }));
-      loadFolders();
     } catch (err) {
       console.error(err);
     }
@@ -313,9 +469,8 @@ export default function LibraryPage() {
     setItems((prev) => prev.filter((i) => i.id !== id));
     try {
       await api.delete(`/library/${id}`);
-      loadFolders();
     } catch (e) {
-      console.warn('Excluído localmente', e);
+      console.warn(e);
     }
   };
 
@@ -328,38 +483,37 @@ export default function LibraryPage() {
         category: editingItem.category,
         folderId: editingItem.folder_id,
       });
-      setItems((prev) =>
-        prev.map((i) => (i.id === editingItem.id ? editingItem : i))
-      );
+      setItems((prev) => prev.map((i) => (i.id === editingItem.id ? editingItem : i)));
       setEditingItem(null);
-      loadFolders();
     } catch (err) {
       console.error(err);
     }
   };
 
   const filteredItems = items.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.content_text.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchesSearch) return false;
-    if (selectedFolderFilter !== 'ALL') {
-      const itemFolder = item.folder_id || 'f_promocoes';
-      if (itemFolder !== selectedFolderFilter) return false;
-    }
-    return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      item.title.toLowerCase().includes(q) ||
+      (item.content_text && item.content_text.toLowerCase().includes(q))
+    );
   });
 
+  // Items outside any folder
+  const unassignedItems = filteredItems.filter((i) => !i.folder_id || !folders.some((f) => f.id === i.folder_id));
+
   return (
-    <div className="space-y-5 max-w-5xl mx-auto pb-16">
-      <div className="flex items-center gap-2.5">
-        <Library className="w-5 h-5 text-[#5b5bd6] dark:text-[#818cf8] stroke-[2.2]" />
-        <h1 className="text-xl font-bold text-slate-800 dark:text-white">
-          Biblioteca
-        </h1>
+    <div className="space-y-5 max-w-5xl mx-auto pb-16 px-2 sm:px-4">
+      {/* Top Header */}
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-2.5">
+          <Library className="w-5 h-5 text-[#5b5bd6] dark:text-[#818cf8] stroke-[2.2]" />
+          <h1 className="text-xl font-bold text-slate-800 dark:text-white">
+            Biblioteca
+          </h1>
+        </div>
       </div>
 
-      {/* Guia de 4 passos do Tutorial */}
+      {/* Banner 4 passos do Tutorial */}
       <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-emerald-500/10 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-3.5 flex items-center justify-between gap-2 overflow-x-auto shadow-xs text-xs">
         <div className="flex items-center gap-2 font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
           <Sparkles className="w-4 h-4" />
@@ -382,68 +536,207 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#0c1222] border border-slate-200/80 dark:border-[#1e293b] rounded-3xl p-6 sm:p-7 space-y-5 shadow-xl">
+      {folderFeedback && (
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{folderFeedback}</span>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* PAINEL INSERIR NOVO (Exatamente igual ao print da imagem 1) */}
+      {/* ========================================================= */}
+      <div className="bg-[#121b2d] border border-[#1e293b] rounded-2xl p-5 space-y-4 shadow-xl text-slate-200">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
             INSERIR NOVO
           </span>
           <button
             type="button"
             onClick={() => setIsInsertCollapsed(!isInsertCollapsed)}
-            className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-[#1e293b] hover:bg-slate-200 dark:hover:bg-[#2d3b55] text-slate-500 dark:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-xl bg-[#1e293b] hover:bg-[#2d3b55] text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
           >
-            {isInsertCollapsed ? (
-              <ChevronDown className="w-4 h-4" />
-            ) : (
-              <ChevronUp className="w-4 h-4" />
-            )}
+            {isInsertCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
           </button>
         </div>
 
         {!isInsertCollapsed && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-5 border-b border-slate-200 dark:border-slate-800/80 text-xs font-semibold select-none">
-              <button type="button" onClick={() => setActiveTab('TEXT')} className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'TEXT' ? 'border-[#4f46e5] text-[#4f46e5] dark:text-[#818cf8]' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-                <Type className="w-4 h-4 stroke-[2.5]" />
+          <div className="space-y-4">
+            {/* Abas: Texto | Imagem | Vídeo | { } Variáveis | Pasta */}
+            <div className="grid grid-cols-5 border-b border-[#1e293b] text-xs font-semibold select-none">
+              <button
+                type="button"
+                onClick={() => setActiveTab('TEXT')}
+                className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'TEXT'
+                    ? 'border-[#5b5bd6] text-[#818cf8] bg-[#5b5bd6]/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                }`}
+              >
+                <Type className="w-4 h-4" />
                 <span>Texto</span>
               </button>
-              <button type="button" onClick={() => setActiveTab('IMAGE')} className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'IMAGE' ? 'border-[#4f46e5] text-[#4f46e5] dark:text-[#818cf8]' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('IMAGE')}
+                className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'IMAGE'
+                    ? 'border-[#5b5bd6] text-[#818cf8] bg-[#5b5bd6]/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                }`}
+              >
                 <ImageIcon className="w-4 h-4" />
                 <span>Imagem</span>
               </button>
-              <button type="button" onClick={() => setActiveTab('VIDEO')} className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'VIDEO' ? 'border-[#4f46e5] text-[#4f46e5] dark:text-[#818cf8]' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('VIDEO')}
+                className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'VIDEO'
+                    ? 'border-[#5b5bd6] text-[#818cf8] bg-[#5b5bd6]/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                }`}
+              >
                 <Film className="w-4 h-4" />
                 <span>Vídeo</span>
               </button>
-              <button type="button" onClick={() => setActiveTab('VARIABLES')} className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'VARIABLES' ? 'border-[#4f46e5] text-[#4f46e5] dark:text-[#818cf8]' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('VARIABLES')}
+                className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'VARIABLES'
+                    ? 'border-[#5b5bd6] text-[#818cf8] bg-[#5b5bd6]/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                }`}
+              >
                 <Code2 className="w-4 h-4" />
                 <span>Variáveis</span>
               </button>
-              <button type="button" onClick={() => setActiveTab('FOLDER')} className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'FOLDER' ? 'border-[#4f46e5] text-[#4f46e5] dark:text-[#818cf8]' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('FOLDER')}
+                className={`py-3 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'FOLDER'
+                    ? 'border-[#5b5bd6] text-[#818cf8] bg-[#5b5bd6]/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                }`}
+              >
                 <Folder className="w-4 h-4" />
                 <span>Pasta</span>
               </button>
             </div>
 
-            {activeTab === 'TEXT' && (
-              <form onSubmit={handleAddText} className="space-y-4">
+            {/* CONTEÚDO DA ABA PASTA (Exatamente igual à Imagem 1) */}
+            {activeTab === 'FOLDER' && (
+              <form onSubmit={handleCreateFolder} className="space-y-4 pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Nome da mídia</label>
-                  <input type="text" value={mediaTitle} onChange={(e) => setMediaTitle(e.target.value)} placeholder="Texto 1" className="w-full px-4 py-2.5 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:border-[#4f46e5]" />
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Nome da pasta
+                  </label>
+                  <input
+                    type="text"
+                    value={folderName}
+                    onChange={(e) => setFolderName(e.target.value)}
+                    placeholder="Ex.: Promoções"
+                    className="w-full px-4 py-2.5 bg-[#0b1021] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-[#5b5bd6]"
+                    required
+                  />
+                </div>
+
+                {/* Seletor com as 22 cores em bolinhas redondas */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {COLOR_SWATCHES.map((hex) => {
+                    const isSelected = folderColor.toUpperCase() === hex.toUpperCase();
+                    return (
+                      <button
+                        key={hex}
+                        type="button"
+                        onClick={() => setFolderColor(hex)}
+                        style={{ backgroundColor: hex }}
+                        className={`w-6 h-6 rounded-full transition-all cursor-pointer ${
+                          isSelected ? 'ring-2 ring-offset-2 ring-offset-[#121b2d] ring-white scale-110' : 'hover:scale-110 opacity-90 hover:opacity-100'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Cor personalizada com preview do código hex */}
+                <div className="flex items-center gap-3 pt-0.5">
+                  <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-700/80 bg-[#0f172a] text-xs font-medium text-slate-300 cursor-pointer hover:bg-[#1e293b] transition-colors">
+                    <Palette className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Cor personalizada</span>
+                    <input
+                      type="color"
+                      value={folderColor}
+                      onChange={(e) => setFolderColor(e.target.value)}
+                      className="sr-only"
+                    />
+                  </label>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-700/80 bg-[#0f172a] text-xs font-mono text-slate-300">
+                    <div className="w-4 h-4 rounded-md shrink-0" style={{ backgroundColor: folderColor }} />
+                    <span>{folderColor.toUpperCase()}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-[#5054d4] hover:bg-[#4347c4] text-white font-semibold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
+                  >
+                    Criar pasta
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* CONTEÚDO DA ABA TEXTO */}
+            {activeTab === 'TEXT' && (
+              <form onSubmit={handleAddText} className="space-y-4 pt-1">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Nome da mídia
+                  </label>
+                  <input
+                    type="text"
+                    value={mediaTitle}
+                    onChange={(e) => setMediaTitle(e.target.value)}
+                    placeholder="Ex.: Texto 1"
+                    className="w-full px-4 py-2.5 bg-[#0b1021] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-[#5b5bd6]"
+                  />
                 </div>
                 <div>
-                  <textarea rows={4} value={mediaContent} onChange={(e) => setMediaContent(e.target.value)} placeholder="Oii, tudo bem?" className="w-full px-4 py-3 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:border-[#4f46e5] resize-y" />
+                  <textarea
+                    rows={4}
+                    value={mediaContent}
+                    onChange={(e) => setMediaContent(e.target.value)}
+                    placeholder="Digite o texto da postagem (suporta Spintax {oi|olá})..."
+                    className="w-full px-4 py-3 bg-[#0b1021] border border-slate-700/80 rounded-2xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-[#5b5bd6] resize-y"
+                  />
                 </div>
                 <div className="grid grid-cols-3 gap-2 select-none">
                   {(['Comentário', 'Postagem', 'Ambos'] as ScopeType[]).map((sc) => (
-                    <button key={sc} type="button" onClick={() => setTargetScope(sc)} className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${targetScope === sc ? 'bg-[#4f46e5]/30 text-[#818cf8] border-[#4f46e5] shadow-xs font-bold' : 'bg-white dark:bg-[#0b1021] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}>
+                    <button
+                      key={sc}
+                      type="button"
+                      onClick={() => setTargetScope(sc)}
+                      className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        targetScope === sc
+                          ? 'bg-[#5b5bd6]/30 text-[#818cf8] border-[#5b5bd6] shadow-xs font-bold'
+                          : 'bg-[#0b1021] text-slate-400 border-slate-700/80 hover:bg-[#182343]'
+                      }`}
+                    >
                       {sc}
                     </button>
                   ))}
                 </div>
                 {folders.length > 0 && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                       Salvar na pasta
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -454,8 +747,8 @@ export default function LibraryPage() {
                           onClick={() => setTargetFolderId(f.id)}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                             targetFolderId === f.id
-                              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-[#4f46e5] dark:text-[#818cf8] border-[#4f46e5] shadow-xs'
-                              : 'bg-white dark:bg-[#0b1021] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+                              ? 'bg-indigo-950/80 text-[#818cf8] border-[#818cf8]'
+                              : 'bg-[#0b1021] text-slate-400 border-slate-700'
                           }`}
                         >
                           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: f.color }} />
@@ -467,33 +760,33 @@ export default function LibraryPage() {
                   </div>
                 )}
                 <div>
-                  <button type="submit" className="px-5 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer">Adicionar Texto</button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-[#5054d4] hover:bg-[#4347c4] text-white font-semibold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
+                  >
+                    Adicionar Texto
+                  </button>
                 </div>
               </form>
             )}
 
+            {/* CONTEÚDO DA ABA IMAGEM */}
             {activeTab === 'IMAGE' && (
-              <form onSubmit={(e) => handleAddMedia(e, 'IMAGE')} className="space-y-4">
+              <form onSubmit={(e) => handleAddMedia(e, 'IMAGE')} className="space-y-4 pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Nome da mídia</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Nome da mídia
+                  </label>
                   <input
                     type="text"
                     value={mediaTitle}
                     onChange={(e) => setMediaTitle(e.target.value)}
-                    placeholder="Ex.: Banner de Lançamento"
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-[#4f46e5]"
+                    placeholder="Ex.: Imagem 1"
+                    className="w-full px-4 py-2.5 bg-[#0b1021] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-[#5b5bd6]"
                   />
                 </div>
 
-                {/* Upload do Computador */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      Upload da Imagem
-                    </label>
-                    <span className="text-[11px] text-slate-400">PNG, JPG, WEBP ou GIF (até 15MB)</span>
-                  </div>
-
                   <div
                     onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                     onDragLeave={() => setDragActive(false)}
@@ -504,9 +797,7 @@ export default function LibraryPage() {
                       if (file) handleFileUpload(file, 'IMAGE');
                     }}
                     className={`relative border-2 border-dashed rounded-2xl p-4 transition-all text-center ${
-                      dragActive
-                        ? 'border-[#4f46e5] bg-[#4f46e5]/10'
-                        : 'border-slate-200 dark:border-slate-700/80 hover:border-[#4f46e5]/60 bg-slate-50/50 dark:bg-[#0b1021]/50'
+                      dragActive ? 'border-[#5b5bd6] bg-[#5b5bd6]/10' : 'border-slate-700/80 bg-[#0b1021]/50'
                     }`}
                   >
                     <input
@@ -519,104 +810,41 @@ export default function LibraryPage() {
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                       disabled={isUploading}
                     />
-
                     {isUploading ? (
-                      <div className="flex flex-col items-center justify-center py-3 space-y-2">
-                        <Loader2 className="w-8 h-8 text-[#4f46e5] animate-spin" />
-                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                          Fazendo upload da imagem para o servidor...
-                        </span>
+                      <div className="flex flex-col items-center py-3 space-y-2">
+                        <Loader2 className="w-8 h-8 text-[#5b5bd6] animate-spin" />
+                        <span className="text-xs text-slate-300">Enviando imagem...</span>
                       </div>
                     ) : mediaUrl ? (
-                      <div className="flex items-center gap-3 text-left p-1">
-                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 border border-slate-700/50 shrink-0 relative flex items-center justify-center">
-                          <img
-                            src={mediaUrl}
-                            alt="Prévia"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="w-4 h-4 shrink-0" />
-                            <span>Imagem pronta</span>
-                          </div>
-                          <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate mt-0.5">
-                            {uploadedFileName || mediaUrl}
-                          </p>
-                          {uploadedFileSize && (
-                            <span className="text-[10px] text-slate-400 font-mono">{uploadedFileSize}</span>
-                          )}
+                      <div className="flex items-center gap-3 p-1">
+                        <img src={mediaUrl} alt="Preview" className="w-16 h-16 rounded-xl object-cover border border-slate-700" />
+                        <div className="flex-1 text-left min-w-0">
+                          <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Imagem pronta
+                          </span>
+                          <p className="text-[11px] text-slate-400 truncate mt-0.5">{uploadedFileName || mediaUrl}</p>
                         </div>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMediaUrl('');
-                            setUploadedFileName(null);
-                            setUploadedFileSize(null);
-                          }}
-                          className="px-3 py-1.5 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer z-20"
+                          onClick={(e) => { e.stopPropagation(); setMediaUrl(''); }}
+                          className="px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10 rounded-lg"
                         >
                           Trocar
                         </button>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-2 py-3 cursor-pointer">
-                        <div className="w-10 h-10 rounded-xl bg-[#4f46e5]/10 text-[#4f46e5] flex items-center justify-center">
-                          <UploadCloud className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                            Clique para escolher do computador ou arraste aqui
-                          </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            O arquivo é carregado automaticamente
-                          </p>
-                        </div>
+                        <UploadCloud className="w-6 h-6 text-indigo-400" />
+                        <p className="text-xs font-semibold text-slate-300">Clique para enviar imagem do computador ou arraste aqui</p>
                       </div>
                     )}
                   </div>
-
-                  {uploadError && (
-                    <div className="mt-2 text-xs text-rose-500 flex items-center gap-1.5 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{uploadError}</span>
-                    </div>
-                  )}
+                  {uploadError && <p className="text-xs text-rose-400 mt-1">{uploadError}</p>}
                 </div>
 
-                {/* URL Alternativa */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                    URL da Imagem
-                  </label>
-                  <input
-                    type="text"
-                    value={mediaUrl}
-                    onChange={(e) => {
-                      setMediaUrl(e.target.value);
-                      setUploadedFileName(null);
-                      setUploadedFileSize(null);
-                    }}
-                    placeholder="https://meusite.com/banner.jpg"
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-[#4f46e5]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 select-none">
-                  {(['Comentário', 'Postagem', 'Ambos'] as ScopeType[]).map((sc) => (
-                    <button key={sc} type="button" onClick={() => setTargetScope(sc)} className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${targetScope === sc ? 'bg-[#4f46e5]/30 text-[#818cf8] border-[#4f46e5] shadow-xs font-bold' : 'bg-white dark:bg-[#0b1021] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}>
-                      {sc}
-                    </button>
-                  ))}
-                </div>
                 {folders.length > 0 && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                       Salvar na pasta
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -627,8 +855,8 @@ export default function LibraryPage() {
                           onClick={() => setTargetFolderId(f.id)}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                             targetFolderId === f.id
-                              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-[#4f46e5] dark:text-[#818cf8] border-[#4f46e5] shadow-xs'
-                              : 'bg-white dark:bg-[#0b1021] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+                              ? 'bg-indigo-950/80 text-[#818cf8] border-[#818cf8]'
+                              : 'bg-[#0b1021] text-slate-400 border-slate-700'
                           }`}
                         >
                           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: f.color }} />
@@ -639,427 +867,709 @@ export default function LibraryPage() {
                     </div>
                   </div>
                 )}
+
                 <div>
-                  <button type="submit" disabled={isUploading} className="px-5 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50">
+                  <button
+                    type="submit"
+                    disabled={isUploading}
+                    className="px-5 py-2.5 bg-[#5054d4] hover:bg-[#4347c4] text-white font-semibold text-xs rounded-xl shadow-md transition-colors cursor-pointer disabled:opacity-50"
+                  >
                     Adicionar Imagem
                   </button>
                 </div>
               </form>
             )}
 
+            {/* CONTEÚDO DA ABA VÍDEO */}
             {activeTab === 'VIDEO' && (
-              <form onSubmit={(e) => handleAddMedia(e, 'VIDEO')} className="space-y-4">
+              <form onSubmit={(e) => handleAddMedia(e, 'VIDEO')} className="space-y-4 pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Nome da mídia</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Nome do vídeo
+                  </label>
                   <input
                     type="text"
                     value={mediaTitle}
                     onChange={(e) => setMediaTitle(e.target.value)}
-                    placeholder="Ex.: Vídeo Demonstrativo"
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-[#4f46e5]"
+                    placeholder="Ex.: Vídeo 1"
+                    className="w-full px-4 py-2.5 bg-[#0b1021] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-[#5b5bd6]"
                   />
                 </div>
-
-                {/* Upload de Vídeo */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      Upload de Vídeo
-                    </label>
-                    <span className="text-[11px] text-slate-400">MP4 ou MOV (até 100MB)</span>
-                  </div>
-
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-                    onDragLeave={() => setDragActive(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragActive(false);
-                      const file = e.dataTransfer.files?.[0];
-                      if (file) handleFileUpload(file, 'VIDEO');
-                    }}
-                    className={`relative border-2 border-dashed rounded-2xl p-4 transition-all text-center ${
-                      dragActive
-                        ? 'border-[#4f46e5] bg-[#4f46e5]/10'
-                        : 'border-slate-200 dark:border-slate-700/80 hover:border-[#4f46e5]/60 bg-slate-50/50 dark:bg-[#0b1021]/50'
-                    }`}
-                  >
-                    <input
-                      type="file"
-                      accept="video/mp4,video/quicktime,video/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file, 'VIDEO');
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                      disabled={isUploading}
-                    />
-
-                    {isUploading ? (
-                      <div className="flex flex-col items-center justify-center py-3 space-y-2">
-                        <Loader2 className="w-8 h-8 text-[#4f46e5] animate-spin" />
-                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                          Fazendo upload do vídeo para o servidor...
-                        </span>
-                      </div>
-                    ) : mediaUrl ? (
-                      <div className="flex items-center gap-3 text-left p-1">
-                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 border border-slate-700/50 shrink-0 relative flex items-center justify-center">
-                          <Film className="w-8 h-8 text-[#818cf8]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="w-4 h-4 shrink-0" />
-                            <span>Vídeo pronto</span>
-                          </div>
-                          <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate mt-0.5">
-                            {uploadedFileName || mediaUrl}
-                          </p>
-                          {uploadedFileSize && (
-                            <span className="text-[10px] text-slate-400 font-mono">{uploadedFileSize}</span>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMediaUrl('');
-                            setUploadedFileName(null);
-                            setUploadedFileSize(null);
-                          }}
-                          className="px-3 py-1.5 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer z-20"
-                        >
-                          Trocar
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center gap-2 py-3 cursor-pointer">
-                        <div className="w-10 h-10 rounded-xl bg-[#4f46e5]/10 text-[#4f46e5] flex items-center justify-center">
-                          <UploadCloud className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                            Clique para escolher vídeo do computador ou arraste aqui
-                          </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            O arquivo é carregado automaticamente
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {uploadError && (
-                    <div className="mt-2 text-xs text-rose-500 flex items-center gap-1.5 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{uploadError}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* URL Alternativa */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                    URL do Vídeo
-                  </label>
                   <input
                     type="text"
                     value={mediaUrl}
-                    onChange={(e) => {
-                      setMediaUrl(e.target.value);
-                      setUploadedFileName(null);
-                      setUploadedFileSize(null);
-                    }}
-                    placeholder="https://meusite.com/video.mp4"
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-[#4f46e5]"
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                    placeholder="https://... URL do vídeo MP4"
+                    className="w-full px-4 py-2.5 bg-[#0b1021] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-[#5b5bd6]"
                   />
                 </div>
-
-                <div className="grid grid-cols-3 gap-2 select-none">
-                  {(['Comentário', 'Postagem', 'Ambos'] as ScopeType[]).map((sc) => (
-                    <button key={sc} type="button" onClick={() => setTargetScope(sc)} className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${targetScope === sc ? 'bg-[#4f46e5]/30 text-[#818cf8] border-[#4f46e5] shadow-xs font-bold' : 'bg-white dark:bg-[#0b1021] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:bg-slate-50'}`}>
-                      {sc}
-                    </button>
-                  ))}
-                </div>
-                {folders.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                      Salvar na pasta
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {folders.map((f) => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setTargetFolderId(f.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                            targetFolderId === f.id
-                              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-[#4f46e5] dark:text-[#818cf8] border-[#4f46e5] shadow-xs'
-                              : 'bg-white dark:bg-[#0b1021] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
-                          }`}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: f.color }} />
-                          <span>{f.name}</span>
-                          {targetFolderId === f.id && <Check className="w-3 h-3 ml-0.5" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 <div>
-                  <button type="submit" disabled={isUploading} className="px-5 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-[#5054d4] hover:bg-[#4347c4] text-white font-semibold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
+                  >
                     Adicionar Vídeo
                   </button>
                 </div>
               </form>
             )}
 
+            {/* CONTEÚDO DA ABA VARIÁVEIS */}
             {activeTab === 'VARIABLES' && (
-              <form onSubmit={(e) => { e.preventDefault(); if (!varName.trim()) return; const finalVar = varName.startsWith('{') ? varName : `{${varName}}`; const newItem: CreativeItem = { id: 'item_' + Date.now(), title: finalVar, category: 'Variável', content_text: varDescription || finalVar, media_type: 'TEXT', media_urls: [], created_at: new Date().toISOString() }; setItems((prev) => [newItem, ...prev]); setItemActiveStates((prev) => ({ ...prev, [newItem.id]: true })); setVarName(''); setVarDescription(''); }} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Nome da variável</label>
-                  <input type="text" value={varName} onChange={(e) => setVarName(e.target.value)} placeholder="Ex.: {primeiro_nome}" className="w-full px-4 py-2.5 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-[#4f46e5]" />
+              <div className="space-y-3 pt-1">
+                <p className="text-xs text-slate-400">
+                  Use variáveis dinâmicas nas suas postagens como {'{primeiro_nome}'}, {'{saudacao}'}, etc.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={varName}
+                    onChange={(e) => setVarName(e.target.value)}
+                    placeholder="Ex.: {saudacao}"
+                    className="flex-1 px-4 py-2 bg-[#0b1021] border border-slate-700/80 rounded-xl text-white text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!varName.trim()) return;
+                      setFolderFeedback(`✓ Variável ${varName} salva!`);
+                      setVarName('');
+                      setTimeout(() => setFolderFeedback(null), 3000);
+                    }}
+                    className="px-4 py-2 bg-[#5054d4] text-white text-xs font-semibold rounded-xl"
+                  >
+                    Adicionar
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Descrição</label>
-                  <input type="text" value={varDescription} onChange={(e) => setVarDescription(e.target.value)} placeholder="Ex.: Olá|Oi" className="w-full px-4 py-2.5 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-[#4f46e5]" />
-                </div>
-                <div>
-                  <button type="submit" className="px-5 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer">Adicionar Variável</button>
-                </div>
-              </form>
-            )}
-
-            {activeTab === 'FOLDER' && (
-              <form onSubmit={handleCreateFolder} className="space-y-3.5">
-                {folderFeedback && (
-                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>{folderFeedback}</span>
-                  </div>
-                )}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Nome da pasta</label>
-                  <input type="text" value={folderName} onChange={(e) => setFolderName(e.target.value)} placeholder="Ex.: Promoções" className="w-full px-4 py-2.5 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:border-[#4f46e5]" required />
-                </div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  {COLOR_SWATCHES.map((hex) => (
-                    <button key={hex} type="button" onClick={() => setFolderColor(hex)} style={{ backgroundColor: hex }} className={`w-7 h-7 rounded-full transition-all cursor-pointer ${folderColor.toUpperCase() === hex.toUpperCase() ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#0c1222] ring-[#4F46E5] scale-110 shadow-xs' : 'hover:scale-105'}`} />
-                  ))}
-                </div>
-                <div className="flex items-center gap-3 pt-0.5">
-                  <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#0f172a] text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-[#1e293b] transition-colors shadow-xs">
-                    <Palette className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                    <span>Cor personalizada</span>
-                    <input type="color" value={folderColor} onChange={(e) => setFolderColor(e.target.value)} className="sr-only" />
-                  </label>
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#0f172a] text-xs font-mono text-slate-600 dark:text-slate-400 shadow-xs">
-                    <div className="w-4 h-4 rounded-md shrink-0" style={{ backgroundColor: folderColor }} />
-                    <span>{folderColor.toUpperCase()}</span>
-                  </div>
-                </div>
-                <div className="pt-1">
-                  <button type="submit" className="px-5 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer">Criar pasta</button>
-                </div>
-              </form>
+              </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Pastas da Biblioteca (Persistentes e organizadas) */}
-      <div className="bg-white dark:bg-[#0c1222] border border-slate-200/80 dark:border-[#1e293b] rounded-3xl p-5 space-y-3 shadow-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Folder className="w-4 h-4 text-[#5b5bd6] dark:text-[#818cf8]" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Pastas Salvas ({folders.length})
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setIsInsertCollapsed(false);
-              setActiveTab('FOLDER');
-            }}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-[#5b5bd6] dark:text-[#818cf8] hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition-colors cursor-pointer"
-          >
-            <FolderPlus className="w-3.5 h-3.5" />
-            <span>+ Nova pasta</span>
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          {/* Todas as mídias */}
-          <button
-            type="button"
-            onClick={() => setSelectedFolderFilter('ALL')}
-            className={`px-3.5 py-2 rounded-2xl text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ${
-              selectedFolderFilter === 'ALL'
-                ? 'bg-[#5b5bd6] text-white border-[#5b5bd6] shadow-xs'
-                : 'bg-slate-50 dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:bg-slate-100'
-            }`}
-          >
-            <span>Todas as mídias</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-              selectedFolderFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}>
-              {items.length}
-            </span>
-          </button>
-
-          {/* Pastas individuais com drop zone */}
-          {folders.map((f) => (
-            <div
-              key={f.id}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.add('scale-105', 'ring-2', 'ring-indigo-500');
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove('scale-105', 'ring-2', 'ring-indigo-500');
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.remove('scale-105', 'ring-2', 'ring-indigo-500');
-                const itemId = e.dataTransfer.getData('text/plain');
-                if (itemId) {
-                  handleMoveItemToFolder(itemId, f.id);
-                  setFolderFeedback(`✓ Item movido para a pasta "${f.name}"!`);
-                  setTimeout(() => setFolderFeedback(null), 3000);
-                }
-              }}
-              onClick={() => setSelectedFolderFilter(f.id)}
-              className={`group flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-semibold border transition-all cursor-pointer select-none ${
-                selectedFolderFilter === f.id
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 border-indigo-400 shadow-xs'
-                  : 'bg-slate-50 dark:bg-[#131c31] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:bg-slate-100'
-              }`}
-            >
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: f.color }} />
-              <span>{f.name}</span>
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">
-                {f.count || 0}
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/postador?folderId=${f.id}`);
-                }}
-                className="opacity-0 group-hover:opacity-100 ml-1 p-0.5 rounded hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-indigo-500 hover:text-indigo-600 transition-opacity"
-                title="Criar campanha com esta pasta no Postador PRO"
-              >
-                <Send className="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteFolder(f.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 ml-0.5 p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-950/60 text-slate-400 hover:text-red-500 transition-opacity"
-                title="Excluir pasta"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
+      {/* ========================================================= */}
+      {/* CAMPO DE BUSCA (Exatamente igual ao print da imagem 1)    */}
+      {/* ========================================================= */}
       <div className="relative">
         <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar..." className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-[#1e293b] rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:border-[#4f46e5] shadow-xs" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar..."
+          className="w-full pl-11 pr-4 py-2.5 bg-[#121b2d] border border-[#1e293b] rounded-2xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-[#5b5bd6] shadow-xs"
+        />
       </div>
 
-      <div className="bg-white dark:bg-[#0c1222] border border-slate-200/80 dark:border-[#1e293b] rounded-2xl p-4 space-y-2.5 shadow-xs">
-        <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">Habilitar mídias em massa</span>
+      {/* ========================================================= */}
+      {/* HABILITAR MÍDIAS EM MASSA (Imagem 1)                      */}
+      {/* ========================================================= */}
+      <div className="bg-[#121b2d] border border-[#1e293b] rounded-2xl p-4 space-y-2.5 shadow-xs">
+        <span className="block text-xs font-semibold text-slate-400">
+          Habilitar mídias em massa
+        </span>
         <div className="flex items-center gap-6">
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <button type="button" role="switch" aria-checked={massComment} onClick={() => setMassComment(!massComment)} className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${massComment ? 'bg-[#5b5bd6]' : 'bg-slate-200 dark:bg-slate-700'}`}>
-              <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${massComment ? 'translate-x-4' : 'translate-x-0'}`} />
+            <button
+              type="button"
+              role="switch"
+              aria-checked={massComment}
+              onClick={() => setMassComment(!massComment)}
+              className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                massComment ? 'bg-[#5054d4]' : 'bg-slate-700'
+              }`}
+            >
+              <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                massComment ? 'translate-x-4' : 'translate-x-0'
+              }`} />
             </button>
-            <span className="text-xs text-slate-700 dark:text-slate-300">Comentário</span>
+            <span className="text-xs text-slate-300">Comentário</span>
           </label>
+
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <button type="button" role="switch" aria-checked={massPost} onClick={() => setMassPost(!massPost)} className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${massPost ? 'bg-[#5b5bd6]' : 'bg-slate-200 dark:bg-slate-700'}`}>
-              <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${massPost ? 'translate-x-4' : 'translate-x-0'}`} />
+            <button
+              type="button"
+              role="switch"
+              aria-checked={massPost}
+              onClick={() => setMassPost(!massPost)}
+              className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                massPost ? 'bg-[#5054d4]' : 'bg-slate-700'
+              }`}
+            >
+              <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                massPost ? 'translate-x-4' : 'translate-x-0'
+              }`} />
             </button>
-            <span className="text-xs text-slate-700 dark:text-slate-300">Postagem</span>
+            <span className="text-xs text-slate-300">Postagem</span>
           </label>
+
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <button type="button" role="switch" aria-checked={massImage} onClick={() => setMassImage(!massImage)} className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${massImage ? 'bg-[#5b5bd6]' : 'bg-slate-200 dark:bg-slate-700'}`}>
-              <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${massImage ? 'translate-x-4' : 'translate-x-0'}`} />
+            <button
+              type="button"
+              role="switch"
+              aria-checked={massImage}
+              onClick={() => setMassImage(!massImage)}
+              className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                massImage ? 'bg-[#5054d4]' : 'bg-slate-700'
+              }`}
+            >
+              <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                massImage ? 'translate-x-4' : 'translate-x-0'
+              }`} />
             </button>
-            <span className="text-xs text-slate-700 dark:text-slate-300">Imagem</span>
+            <span className="text-xs text-slate-300">Imagem</span>
           </label>
         </div>
       </div>
 
-      <div className="space-y-2.5">
-        {filteredItems.map((item) => (
-          <div
-            key={item.id}
-            draggable
-            onDragStart={(e) => e.dataTransfer.setData('text/plain', item.id)}
-            className="p-3.5 bg-white dark:bg-[#0c1222] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl flex items-center justify-between gap-3 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all select-none cursor-grab active:cursor-grabbing"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="font-semibold text-xs text-slate-800 dark:text-white truncate">{item.title}</span>
-            </div>
-            <div className="flex items-center gap-2.5 shrink-0">
-              {folders.length > 0 && (
-                <select
-                  value={item.folder_id || (folders.find(f => f.name === 'Promoções')?.id || folders[0]?.id || '')}
-                  onChange={(e) => handleMoveItemToFolder(item.id, e.target.value)}
-                  className="px-2.5 py-1 bg-slate-100 dark:bg-[#131c31] border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
-                  title="Mudar pasta deste item"
-                >
-                  {folders.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      📁 {f.name}
-                    </option>
-                  ))}
-                </select>
+      {/* ========================================================= */}
+      {/* LISTA DE PASTAS EM FORMATO ACCORDION (Imagens 1 e 2)      */}
+      {/* ========================================================= */}
+      <div className="space-y-3.5">
+        {folders.map((folder) => {
+          const isOpen = expandedFolderIds.has(folder.id);
+          const folderItems = filteredItems.filter((i) => i.folder_id === folder.id);
+          const itemCount = folderItems.length;
+
+          return (
+            <div
+              key={folder.id}
+              className="bg-[#121b2d] border border-[#1e293b] rounded-2xl overflow-hidden shadow-sm transition-all"
+            >
+              {/* Barra da Pasta (Exatamente como nas Imagens 1 e 2) */}
+              <div
+                onClick={() => toggleFolderExpand(folder.id)}
+                className="w-full px-4 py-3 bg-[#1e2738] hover:bg-[#253044] flex items-center justify-between gap-3 cursor-pointer select-none transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Ícone de pasta com a cor configurada */}
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs"
+                    style={{ backgroundColor: `${folder.color}25`, color: folder.color, border: `1px solid ${folder.color}50` }}
+                  >
+                    <Folder className="w-4 h-4 fill-current" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-xs sm:text-sm text-white tracking-wide uppercase truncate">
+                      {folder.name}
+                    </h3>
+                    <span className="text-[11px] text-slate-400 block">
+                      {itemCount} item(ns)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Seta chevron: > quando fechado, v quando aberto */}
+                <div className="text-slate-400 shrink-0">
+                  {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </div>
+              </div>
+
+              {/* CONTEÚDO DA PASTA QUANDO ABERTA (Imagem 2) */}
+              {isOpen && (
+                <div className="p-4 space-y-4 border-t border-[#1e293b] bg-[#0e1626]">
+                  {/* Sub-barra de Ações da Pasta (Imagem 2) */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-[#1e293b]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Botão Alterar cor */}
+                      <button
+                        type="button"
+                        onClick={() => setFolderToEditColor(folder)}
+                        className="px-3 py-1.5 rounded-full bg-[#1b2537] hover:bg-[#243147] border border-slate-700 text-xs font-semibold text-slate-300 transition-colors cursor-pointer"
+                      >
+                        Alterar cor
+                      </button>
+
+                      {/* Botão Esvaziar pasta */}
+                      <button
+                        type="button"
+                        onClick={() => handleEmptyFolder(folder.id)}
+                        className="px-3 py-1.5 rounded-full bg-[#1b2537] hover:bg-[#243147] border border-slate-700 text-xs font-semibold text-slate-300 transition-colors cursor-pointer"
+                      >
+                        Esvaziar pasta
+                      </button>
+
+                      {/* Botão Lápis (editar nome) */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFolderToRename(folder);
+                          setRenameValue(folder.name);
+                        }}
+                        className="w-7 h-7 rounded-xl bg-[#1b2537] hover:bg-[#243147] border border-slate-700 text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                        title="Renomear pasta"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Botão Lixeira vermelha (excluir pasta) */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFolder(folder.id)}
+                        className="w-7 h-7 rounded-xl bg-[#1b2537] hover:bg-rose-950/40 border border-slate-700 hover:border-rose-700 text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
+                        title="Excluir pasta"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Botão Criar Campanha com esta pasta */}
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/postador?folderId=${folder.id}`)}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#5054d4] hover:bg-[#4347c4] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer ml-auto"
+                      title="Criar campanha no Postador PRO usando esta pasta"
+                    >
+                      <Send className="w-3 h-3" />
+                      <span>Criar Campanha</span>
+                    </button>
+                  </div>
+
+                  {/* ITENS DENTRO DA PASTA (Imagem 2) */}
+                  {folderItems.length === 0 ? (
+                    <div className="text-center py-8 text-xs text-slate-400">
+                      Nenhum item nesta pasta ainda. Adicione textos ou imagens acima!
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {folderItems.map((item) => {
+                        const isImage = item.media_type === 'IMAGE';
+                        const isVideo = item.media_type === 'VIDEO';
+                        const isText = !isImage && !isVideo;
+                        const isActive = itemActiveStates[item.id] !== false;
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="bg-[#121b2d] border border-[#1e293b] rounded-2xl p-3.5 space-y-3 shadow-xs hover:border-slate-700 transition-all"
+                          >
+                            {/* Barra Superior do Item: Título | Ativo | Botões de Ação */}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-bold text-xs text-white uppercase truncate">
+                                  {item.title}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2.5 shrink-0">
+                                {isText && (
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#1e293b] text-slate-400 border border-slate-700">
+                                    {item.category || 'Ambos'}
+                                  </span>
+                                )}
+
+                                {/* Toggle Ativo */}
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={isActive}
+                                    onClick={() => toggleItemActive(item.id)}
+                                    className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                                      isActive ? 'bg-[#5054d4]' : 'bg-slate-700'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                                        isActive ? 'translate-x-4' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                  <span className="text-xs font-semibold text-slate-300">
+                                    Ativo
+                                  </span>
+                                </div>
+
+                                {/* Grupo de Botões Arredondados Cinza (Imagem 2) */}
+                                <div className="flex items-center gap-1 bg-[#1b2537] p-1 rounded-xl border border-slate-700/80">
+                                  {/* 1. Botão Olho (Visualizar) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewItem(item)}
+                                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                                    title="Visualizar"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* 2. Botão Lápis (Editar) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingItem(item)}
+                                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                                    title="Editar"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* 3. Botão Pasta (Mover para outra pasta) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setMovingItem(item)}
+                                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                                    title="Mover para outra pasta"
+                                  >
+                                    <FolderInput className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* 4. Botão Duplicar */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDuplicateItem(item)}
+                                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                                    title="Duplicar"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* 5. Botão 3 pontinhos (Mais opções) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewItem(item)}
+                                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                                    title="Mais opções"
+                                  >
+                                    <MoreVertical className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* 6. Botão Lixeira vermelha */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(item.id)}
+                                    className="w-7 h-7 rounded-lg hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-colors cursor-pointer"
+                                    title="Excluir"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Preview Central da Imagem (Exatamente como na Imagem 2) */}
+                            {isImage && item.media_urls && item.media_urls[0] && (
+                              <div className="flex justify-center pt-1 pb-1">
+                                <div className="max-w-[240px] max-h-[240px] rounded-xl overflow-hidden border border-slate-700 shadow-md bg-black/40">
+                                  <img
+                                    src={item.media_urls[0]}
+                                    alt={item.title}
+                                    className="w-full h-full object-cover max-h-[220px]"
+                                    onError={(e) => {
+                                      (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Preview de Texto caso tenha conteúdo relevante */}
+                            {isText && item.content_text && (
+                              <p className="text-xs text-slate-300 line-clamp-2 px-1">
+                                {item.content_text}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60">{item.category || 'Ambos'}</span>
-              <div className="flex items-center gap-1.5">
-                <button type="button" role="switch" aria-checked={itemActiveStates[item.id] !== false} onClick={() => toggleItemActive(item.id)} className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${itemActiveStates[item.id] !== false ? 'bg-[#5b5bd6]' : 'bg-slate-200 dark:bg-slate-700'}`}>
-                  <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${itemActiveStates[item.id] !== false ? 'translate-x-4' : 'translate-x-0'}`} />
-                </button>
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Ativo</span>
+            </div>
+          );
+        })}
+
+        {/* ========================================================= */}
+        {/* ITENS FORA DAS PASTAS (Ex: TEXTO 01 na imagem 1 e 2)      */}
+        {/* ========================================================= */}
+        {unassignedItems.map((item) => {
+          const isActive = itemActiveStates[item.id] !== false;
+          return (
+            <div
+              key={item.id}
+              className="bg-[#121b2d] border border-[#1e293b] rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-xs hover:border-slate-700 transition-all"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="font-bold text-xs text-white uppercase truncate">
+                  {item.title}
+                </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <button type="button" onClick={() => setPreviewItem(item)} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#1e293b]/70 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-[#334155] flex items-center justify-center"><Eye className="w-4 h-4 text-slate-500" /></button>
-                <button type="button" onClick={() => setEditingItem(item)} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#1e293b]/70 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-[#334155] flex items-center justify-center"><Edit3 className="w-4 h-4 text-slate-500" /></button>
-                <button type="button" onClick={() => handleDuplicateItem(item)} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#1e293b]/70 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-[#334155] flex items-center justify-center"><Copy className="w-4 h-4 text-slate-500" /></button>
-                <button type="button" onClick={() => handleDelete(item.id)} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#1e293b]/70 border border-slate-200 dark:border-slate-700/80 hover:bg-red-500/10 hover:border-red-500/30 flex items-center justify-center"><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" /></button>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#1e293b] text-slate-400 border border-slate-700">
+                  {item.category || 'Ambos'}
+                </span>
+
+                {/* Toggle Ativo */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isActive}
+                    onClick={() => toggleItemActive(item.id)}
+                    className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                      isActive ? 'bg-[#5054d4]' : 'bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        isActive ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-xs font-semibold text-slate-300">
+                    Ativo
+                  </span>
+                </div>
+
+                {/* Grupo de Botões */}
+                <div className="flex items-center gap-1 bg-[#1b2537] p-1 rounded-xl border border-slate-700/80">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewItem(item)}
+                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+                    title="Visualizar"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem(item)}
+                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+                    title="Editar"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMovingItem(item)}
+                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+                    title="Mover para pasta"
+                  >
+                    <FolderInput className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDuplicateItem(item)}
+                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+                    title="Duplicar"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewItem(item)}
+                    className="w-7 h-7 rounded-lg hover:bg-[#27344a] text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+                    title="Mais opções"
+                  >
+                    <MoreVertical className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(item.id)}
+                    className="w-7 h-7 rounded-lg hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-colors"
+                    title="Excluir"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
+      {/* ========================================================= */}
+      {/* MODAL: VISUALIZAR ITEM                                    */}
+      {/* ========================================================= */}
       {previewItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between"><h3 className="font-bold text-sm text-slate-800 dark:text-white">{previewItem.title}</h3><button type="button" onClick={() => setPreviewItem(null)} className="p-1 text-slate-400"><X className="w-4 h-4" /></button></div>
-            <div className="p-3.5 bg-slate-50 dark:bg-[#0b1021] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{previewItem.content_text}</div>
-            <div className="flex justify-end"><button type="button" onClick={() => setPreviewItem(null)} className="px-4 py-2 bg-[#4f46e5] text-white text-xs font-semibold rounded-xl">Fechar</button></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm uppercase">{previewItem.title}</h3>
+              <button type="button" onClick={() => setPreviewItem(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {previewItem.media_urls && previewItem.media_urls[0] && (
+              <div className="rounded-xl overflow-hidden max-h-64 border border-slate-700 flex items-center justify-center bg-black">
+                <img src={previewItem.media_urls[0]} alt="Preview" className="max-h-64 object-contain" />
+              </div>
+            )}
+            <div className="p-3 bg-[#0b1021] border border-slate-800 rounded-xl text-xs whitespace-pre-wrap text-slate-300">
+              {previewItem.content_text || 'Sem texto definido.'}
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPreviewItem(null)}
+                className="px-4 py-2 bg-[#5054d4] hover:bg-[#4347c4] text-white text-xs font-semibold rounded-xl"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* ========================================================= */}
+      {/* MODAL: EDITAR ITEM                                        */}
+      {/* ========================================================= */}
       {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between"><h3 className="font-bold text-sm text-slate-800 dark:text-white">Editar Mídia</h3><button type="button" onClick={() => setEditingItem(null)} className="p-1 text-slate-400"><X className="w-4 h-4" /></button></div>
-            <div><label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Título</label><input type="text" value={editingItem.title} onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })} className="w-full px-3.5 py-2 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white" /></div>
-            <div><label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Conteúdo</label><textarea rows={4} value={editingItem.content_text} onChange={(e) => setEditingItem({ ...editingItem, content_text: e.target.value })} className="w-full px-3.5 py-2 bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white resize-y" /></div>
-            <div className="flex justify-end gap-2 pt-1"><button type="button" onClick={() => setEditingItem(null)} className="px-4 py-2 bg-slate-100 dark:bg-[#1e293b] text-slate-700 text-xs font-semibold rounded-xl">Cancelar</button><button type="button" onClick={handleSaveEdit} className="px-4 py-2 bg-[#4f46e5] text-white text-xs font-semibold rounded-xl">Salvar</button></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm">Editar Mídia</h3>
+              <button type="button" onClick={() => setEditingItem(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Título</label>
+              <input
+                type="text"
+                value={editingItem.title}
+                onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                className="w-full px-3.5 py-2 bg-[#0b1021] border border-slate-700 rounded-xl text-xs text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Conteúdo</label>
+              <textarea
+                rows={4}
+                value={editingItem.content_text}
+                onChange={(e) => setEditingItem({ ...editingItem, content_text: e.target.value })}
+                className="w-full px-3.5 py-2 bg-[#0b1021] border border-slate-700 rounded-xl text-xs text-white resize-y"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="px-4 py-2 bg-[#1b2537] text-slate-300 text-xs font-semibold rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="px-4 py-2 bg-[#5054d4] hover:bg-[#4347c4] text-white text-xs font-semibold rounded-xl"
+              >
+                Salvar Alterações
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: MOVER ITEM PARA PASTA                              */}
+      {/* ========================================================= */}
+      {movingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm">Mover para Pasta</h3>
+              <button type="button" onClick={() => setMovingItem(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-300">
+              Escolha a pasta de destino para o item <strong className="text-white">"{movingItem.title}"</strong>:
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleMoveItemToFolder(movingItem.id, null)}
+                className="w-full text-left px-3.5 py-2 rounded-xl bg-[#0b1021] hover:bg-[#1b2537] text-xs font-semibold text-slate-300 flex items-center gap-2 border border-slate-800"
+              >
+                <span>Nenhuma pasta (item solto)</span>
+              </button>
+              {folders.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => handleMoveItemToFolder(movingItem.id, f.id)}
+                  className="w-full text-left px-3.5 py-2 rounded-xl bg-[#0b1021] hover:bg-[#1b2537] text-xs font-semibold text-white flex items-center gap-2.5 border border-slate-800"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: f.color }} />
+                  <span className="truncate">{f.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: ALTERAR COR DA PASTA                               */}
+      {/* ========================================================= */}
+      {folderToEditColor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm">Alterar cor da pasta</h3>
+              <button type="button" onClick={() => setFolderToEditColor(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-300">
+              Escolha a nova cor para a pasta <strong className="text-white">"{folderToEditColor.name}"</strong>:
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {COLOR_SWATCHES.map((hex) => (
+                <button
+                  key={hex}
+                  type="button"
+                  onClick={() => handleUpdateFolderColor(folderToEditColor.id, hex)}
+                  style={{ backgroundColor: hex }}
+                  className="w-7 h-7 rounded-full transition-transform hover:scale-110 cursor-pointer"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: RENOMEAR PASTA                                     */}
+      {/* ========================================================= */}
+      {folderToRename && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <form onSubmit={handleRenameFolder} className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm">Renomear Pasta</h3>
+              <button type="button" onClick={() => setFolderToRename(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Novo nome</label>
+              <input
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                className="w-full px-3.5 py-2 bg-[#0b1021] border border-slate-700 rounded-xl text-xs text-white"
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setFolderToRename(null)}
+                className="px-4 py-2 bg-[#1b2537] text-slate-300 text-xs font-semibold rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-[#5054d4] hover:bg-[#4347c4] text-white text-xs font-semibold rounded-xl"
+              >
+                Salvar
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

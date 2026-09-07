@@ -99,6 +99,17 @@ libraryRouter.delete('/folders/:id', (req: Request, res: Response) => {
   }
 });
 
+// POST Empty folder
+libraryRouter.post('/folders/:id/empty', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    db.prepare('UPDATE creative_library SET folder_id = NULL WHERE folder_id = ?').run(id);
+    return sendSuccess(res, { emptied: true }, 'Pasta esvaziada com sucesso');
+  } catch (error: any) {
+    return sendError(res, error.message);
+  }
+});
+
 // POST Move item to folder
 libraryRouter.post('/items/:id/folder', (req: Request, res: Response) => {
   try {
