@@ -35,7 +35,11 @@ import {
   Shield,
   Copy,
   ChevronRight,
-  Search
+  Search,
+  Eye,
+  ThumbsUp,
+  MessageSquare,
+  Share2
 } from 'lucide-react';
 import { api, Campaign, Account, GroupList, CreativeItem, LibraryFolder } from '../core/apiService';
 import CalibratorModal from '../components/CalibratorModal';
@@ -139,6 +143,7 @@ export default function PostadorPage() {
   const [creating, setCreating] = useState(false);
   const [selectedCampaignForLogs, setSelectedCampaignForLogs] = useState<Campaign | null>(null);
   const [campaignLogs, setCampaignLogs] = useState<any[]>([]);
+  const [previewCampaign, setPreviewCampaign] = useState<Campaign | null>(null);
 
   useEffect(() => {
     loadData();
@@ -1151,6 +1156,16 @@ export default function PostadorPage() {
 
                     {/* Grupo de botões à direita (Quadrados arredondados com borda prateada/cinza clara como na Imagem) */}
                     <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Visualizar Postagem */}
+                      <button
+                        type="button"
+                        onClick={() => setPreviewCampaign(c)}
+                        className="w-8 h-8 rounded-xl bg-[#1b253b]/80 hover:bg-[#25334d] border border-slate-500/70 text-slate-300 hover:text-indigo-400 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
+                        title="Visualizar postagem"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+
                       {/* Play ou Pause */}
                       {!isRunning ? (
                         <button
@@ -1225,8 +1240,8 @@ export default function PostadorPage() {
                     {c.current_target_name ? c.current_target_name : `Concluído: ${sent}/${total} postados.`}
                   </div>
 
-                  {/* Botão Pílula: > Ver envios (X) */}
-                  <div className="pt-1">
+                  {/* Botão Pílula: > Ver envios (X) e Visualizar postagem */}
+                  <div className="pt-1 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => handleViewItems(c)}
@@ -1234,6 +1249,16 @@ export default function PostadorPage() {
                     >
                       <span className="font-bold text-[#818cf8] text-sm leading-none">&gt;</span>
                       <span>Ver envios ({total})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPreviewCampaign(c)}
+                      className="px-3 py-1.5 rounded-lg bg-[#1e2638] hover:bg-[#28334a] border border-[#2d384e] text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Visualizar postagem da campanha"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Visualizar postagem</span>
                     </button>
                   </div>
                 </div>
@@ -1276,9 +1301,23 @@ export default function PostadorPage() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white truncate">{log.target_name || `Grupo #${idx + 1}`}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800">
-                        {log.status === 'SUCCESS' ? 'OK' : 'Falha'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {log.post_url && (
+                          <a
+                            href={log.post_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 text-[11px]"
+                            title="Abrir postagem no Facebook"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Ver post</span>
+                          </a>
+                        )}
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800">
+                          {log.status === 'SUCCESS' ? 'OK' : 'Falha'}
+                        </span>
+                      </div>
                     </div>
                     {log.response_message && (
                       <p className="text-[11px] text-slate-400">{log.response_message}</p>
@@ -1288,7 +1327,19 @@ export default function PostadorPage() {
               )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const camp = selectedCampaignForLogs;
+                  setSelectedCampaignForLogs(null);
+                  setPreviewCampaign(camp);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1e293b] hover:bg-[#28354f] border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white"
+              >
+                <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Visualizar Criativo/Post</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setSelectedCampaignForLogs(null)}
@@ -1296,6 +1347,138 @@ export default function PostadorPage() {
               >
                 Fechar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: VISUALIZAR POSTAGEM (Facebook Preview Card)        */}
+      {/* ========================================================= */}
+      {previewCampaign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+          <div className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-xl p-5 space-y-4 shadow-2xl text-white animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm uppercase tracking-wide">Visualizar Postagem</h3>
+                  <p className="text-xs text-slate-400">{previewCampaign.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewCampaign(null)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Card no estilo Facebook */}
+            <div className="bg-[#0b1021] border border-slate-800 rounded-2xl p-4 space-y-3 shadow-inner">
+              {/* Autor & Data */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm text-white shadow-sm">
+                  {previewCampaign.account_name ? previewCampaign.account_name.charAt(0).toUpperCase() : 'P'}
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-white flex items-center gap-1.5">
+                    <span>{previewCampaign.account_name || 'Conta Vinculada'}</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  </h4>
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                    <span>Agora mesmo</span>
+                    <span>·</span>
+                    <span>🌐 Público</span>
+                    <span>·</span>
+                    <span className="text-indigo-400 font-medium">Postador PRO</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Texto da publicação */}
+              <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                {previewCampaign.content_text || 'Olá! Confira nossa novidade especial para você e sua família.'}
+              </div>
+
+              {/* Mídia (Imagem ou Vídeo) */}
+              {previewCampaign.media_urls ? (
+                <div className="rounded-xl overflow-hidden border border-slate-800 max-h-80 flex items-center justify-center bg-black/40">
+                  {previewCampaign.media_type === 'VIDEO' ? (
+                    <video src={previewCampaign.media_urls} controls className="max-h-80 w-full object-contain" />
+                  ) : (
+                    <img src={previewCampaign.media_urls} alt="Mídia da postagem" className="max-h-80 w-full object-contain" />
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl p-8 bg-[#121b2d]/60 border border-slate-800 flex flex-col items-center justify-center text-center gap-2">
+                  <ImageIcon className="w-10 h-10 text-slate-500" />
+                  <p className="text-xs text-slate-400 font-medium">
+                    {previewCampaign.media_type === 'TEXT'
+                      ? 'Publicação em formato de Texto puro'
+                      : 'Mídia selecionada da Biblioteca sincronizada'}
+                  </p>
+                </div>
+              )}
+
+              {/* Barra de Reações Simulada */}
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 px-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="flex -space-x-1">
+                    <span className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center text-[9px] text-white">👍</span>
+                    <span className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center text-[9px] text-white">❤️</span>
+                  </span>
+                  <span>14 curtidas</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span>4 comentários</span>
+                  <span>2 compartilhamentos</span>
+                </div>
+              </div>
+
+              {/* Botões de Ação do Post */}
+              <div className="pt-1.5 border-t border-slate-800 flex items-center justify-around text-xs text-slate-300">
+                <button type="button" className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-800/50 transition-colors">
+                  <ThumbsUp className="w-3.5 h-3.5" />
+                  <span>Curtir</span>
+                </button>
+                <button type="button" className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-800/50 transition-colors">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Comentar</span>
+                </button>
+                <button type="button" className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-800/50 transition-colors">
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Compartilhar</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-xs text-slate-400">
+                Alvos: <span className="text-white font-bold">{previewCampaign.total_targets}</span> grupos · Enviados: <span className="text-emerald-400 font-bold">{previewCampaign.successful_posts}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href="https://www.facebook.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-[#1e293b] hover:bg-[#28354f] border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Abrir Facebook</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewCampaign(null)}
+                  className="px-4 py-2 bg-[#5054d4] hover:bg-[#4347c4] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
         </div>
