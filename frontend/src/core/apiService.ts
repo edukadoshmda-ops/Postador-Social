@@ -266,13 +266,13 @@ function executeNextWarmerGroupAction() {
     ? currentGroup.url
     : `https://www.facebook.com/groups/search/groups/?q=${encodeURIComponent(groupName)}`;
 
-  const isAlready = currentWarmerState.onlyAlreadyMember ? true : Math.random() > 0.85;
-  const status = isAlready ? 'Já membro' : 'Entrou';
+  const isAlready = currentWarmerState.onlyAlreadyMember || currentGroup.isMember;
+  const status = isAlready ? 'Já membro' : 'Pendente de Entrada';
 
   if (isAlready) {
     currentWarmerState.countAlreadyMember += 1;
   } else {
-    currentWarmerState.countEntered += 1;
+    currentWarmerState.countWaiting += 1;
   }
 
   const enteredItem = {

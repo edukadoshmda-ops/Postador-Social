@@ -31,7 +31,8 @@ import {
   MessageSquare,
   ShieldCheck,
   RotateCcw,
-  History
+  History,
+  Info
 } from 'lucide-react';
 import clsx from 'clsx';
 import { api, GroupList, WarmerManager } from '../core/apiService';
@@ -372,12 +373,18 @@ export default function WarmerPage() {
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
   };
 
-  const getSafeGroupUrl = (item: { url?: string; name?: string }) => {
+  const getSafeGroupUrl = (item: { url?: string; name?: string; id?: string }) => {
     if (!item) return 'https://www.facebook.com/groups';
-    if (item.url && item.url.startsWith('https://www.facebook.com/groups/search')) {
+    // Se o item tiver URL direta do grupo (sem ser página de busca), abre direto a página do grupo
+    if (item.url && item.url.includes('facebook.com/groups/') && !item.url.includes('/search/')) {
       return item.url;
     }
-    if (item.url && /facebook\.com\/groups\/\d+/.test(item.url)) {
+    // Se for ID numérico de grupo do Facebook
+    if (item.id && /^\d{5,}$/.test(item.id)) {
+      return `https://www.facebook.com/groups/${item.id}`;
+    }
+    // Se tiver URL de busca definida
+    if (item.url && item.url.startsWith('https://www.facebook.com/groups/search')) {
       return item.url;
     }
     return `https://www.facebook.com/groups/search/groups/?q=${encodeURIComponent(item.name || 'grupos')}`;
@@ -769,6 +776,17 @@ export default function WarmerPage() {
           <div className="bg-emerald-50 dark:bg-[#0b1f1a] border border-emerald-300 dark:border-emerald-500/30 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-700 dark:text-emerald-400 font-semibold shadow-sm dark:shadow-lg">
             <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>Tudo calibrado. Pronto para aquecer.</span>
+          </div>
+
+          {/* Info Banner sobre confirmação de entrada */}
+          <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 rounded-2xl p-3.5 flex items-start gap-3 text-xs text-blue-800 dark:text-blue-300">
+            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold">Confirmação de entrada em novos grupos:</span>
+              <p className="text-[11px] text-blue-700 dark:text-blue-400/90 leading-relaxed">
+                Ao processar grupos novos, clique no botão <b>"Participar ↗"</b> para abrir a página no Facebook e confirmar o clique em 'Participar' (ou responder às perguntas caso o grupo exija aprovação de moderador).
+              </p>
+            </div>
           </div>
 
           {/* Card 1: BUSCAR GRUPOS (Imagem 2) */}
@@ -1232,38 +1250,45 @@ export default function WarmerPage() {
                     <p className="text-xs text-slate-500">Nenhum resultado registrado ainda.</p>
                   </div>
                 ) : (
-                  executionLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="p-3 rounded-xl bg-slate-50 dark:bg-[#091024] border border-slate-200/80 dark:border-[#1a2544] flex items-center justify-between gap-3 animate-in fade-in"
-                    >
-                      <div className="space-y-1 min-w-0">
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate uppercase">{log.name}</h4>
-                        <span
+                  executionLogs.map((log) => {
+                    const isMember = log.status === 'Já membro' || log.status === 'Entrou';
+                    return (
+                      <div
+                        key={log.id}
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-[#091024] border border-slate-200/80 dark:border-[#1a2544] flex items-center justify-between gap-3 animate-in fade-in"
+                      >
+                        <div className="space-y-1 min-w-0">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate uppercase">{log.name}</h4>
+                          <span
+                            className={clsx(
+                              'inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md',
+                              isMember
+                                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                                : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                            )}
+                          >
+                            {isMember ? log.status : 'Pendente de entrada no Facebook'}
+                          </span>
+                        </div>
+
+                        <a
+                          href={getSafeGroupUrl(log)}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={isMember ? 'Acessar página do grupo no Facebook' : 'Abrir no Facebook para clicar em Participar'}
                           className={clsx(
-                            'inline-block text-[11px] font-semibold',
-                            log.status === 'Entrou'
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : log.status === 'Já membro'
-                              ? 'text-blue-600 dark:text-blue-400'
-                              : 'text-amber-600 dark:text-amber-400'
+                            'px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-xs',
+                            isMember
+                              ? 'bg-slate-200/80 hover:bg-slate-300 dark:bg-[#131c31] dark:hover:bg-[#1e293b] text-slate-700 dark:text-slate-200'
+                              : 'bg-indigo-600 hover:bg-indigo-500 text-white'
                           )}
                         >
-                          {log.status}
-                        </span>
+                          <span>{isMember ? 'Acessar' : 'Participar'}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
-
-                      <a
-                        href={getSafeGroupUrl(log)}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Ver busca do grupo no Facebook"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#131c31] transition-colors shrink-0"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
