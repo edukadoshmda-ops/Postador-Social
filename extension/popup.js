@@ -85,7 +85,7 @@ btnResetApi?.addEventListener('click', async () => {
 
 // Botão Nuvem Vercel
 btnVercelApi?.addEventListener('click', async () => {
-  const vercelUrl = 'https://postador-two.vercel.app';
+  const vercelUrl = 'https://postador-social.vercel.app';
   if (apiInput) apiInput.value = vercelUrl;
   await chrome.storage.local.set({ pulso_api_base: vercelUrl });
   updateConnIndicator(vercelUrl);
@@ -94,7 +94,7 @@ btnVercelApi?.addEventListener('click', async () => {
 
 // Abrir Painel Nuvem (Top nav external link)
 document.getElementById('openVercelPanel')?.addEventListener('click', async () => {
-  const vercelUrl = 'https://postador-two.vercel.app';
+  const vercelUrl = 'https://postador-social.vercel.app';
   if (apiInput) apiInput.value = vercelUrl;
   await chrome.storage.local.set({ pulso_api_base: vercelUrl });
   updateConnIndicator(vercelUrl);
@@ -114,7 +114,7 @@ document.getElementById('openLocalPanel')?.addEventListener('click', async () =>
 async function openTabRoute(route) {
   const apiBase = await getApiBase();
   const isCloud = apiBase.includes('vercel.app');
-  const baseWeb = isCloud ? 'https://postador-two.vercel.app' : 'http://localhost:5174';
+  const baseWeb = isCloud ? 'https://postador-social.vercel.app' : 'http://localhost:5174';
   chrome.tabs.create({ url: `${baseWeb}/${route}`, active: true });
 }
 

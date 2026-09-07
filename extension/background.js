@@ -6,7 +6,7 @@ async function getApiBase() {
       return data.pulso_api_base.trim().replace(/\/+$/, '');
     }
   } catch {}
-  return 'https://postador-two.vercel.app';
+  return 'https://postador-social.vercel.app';
 }
 
 async function captureFacebookSession() {
