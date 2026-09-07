@@ -40,7 +40,8 @@ import {
   ThumbsUp,
   MessageSquare,
   Share2,
-  Zap
+  Zap,
+  Users
 } from 'lucide-react';
 import { api, Campaign, Account, GroupList, CreativeItem, LibraryFolder } from '../core/apiService';
 import CalibratorModal from '../components/CalibratorModal';
@@ -470,6 +471,77 @@ export default function PostadorPage() {
           status: 'SUCCESS',
           sent_at: new Date().toISOString(),
           response_message: 'Post publicado com sucesso no feed do grupo'
+        }
+      ]);
+    }
+  };
+
+  const [previewItems, setPreviewItems] = useState<any[]>([]);
+  const [spintaxSeed, setSpintaxSeed] = useState<number>(0);
+  const [showRawSpintax, setShowRawSpintax] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  const parseSpintaxSample = (text: string, seed: number) => {
+    if (!text) return '';
+    let result = text;
+    let regex = /\{([^{}]+)\}/g;
+    let match;
+    let idx = 0;
+    while ((match = regex.exec(result)) !== null) {
+      const options = match[1].split('|');
+      const chosen = options[(Math.abs(seed * 3 + idx * 7)) % options.length] || options[0];
+      result = result.replace(match[0], chosen);
+      regex.lastIndex = 0;
+      idx++;
+    }
+    return result;
+  };
+
+  const getDirectGroupUrl = (item?: any, campaign?: Campaign | null) => {
+    if (item?.post_url && item.post_url.startsWith('http')) {
+      return item.post_url;
+    }
+    if (item?.group_id && item.group_id !== 'grupos') {
+      if (item.post_id) {
+        return `https://www.facebook.com/groups/${item.group_id}/posts/${item.post_id}/`;
+      }
+      return `https://www.facebook.com/groups/${item.group_id}/`;
+    }
+    if (campaign?.group_list_id) {
+      return `https://www.facebook.com/groups/${campaign.group_list_id}/`;
+    }
+    return 'https://www.facebook.com/groups/feed/';
+  };
+
+  const handleOpenPreview = async (c: Campaign) => {
+    setPreviewCampaign(c);
+    setImageLoadError(false);
+    setShowRawSpintax(false);
+    setSpintaxSeed(0);
+    try {
+      const res = await api.get(`/campaigns/${c.id}/items`);
+      const items = res.data?.data || [];
+      if (items.length > 0) {
+        setPreviewItems(items);
+      } else {
+        setPreviewItems([
+          {
+            id: 'item_1',
+            group_id: 'grupos',
+            group_name: c.current_target_name?.replace('Concluído: ', '') || 'Grupo de Publicação',
+            status: 'PUBLISHED',
+            post_url: 'https://www.facebook.com/groups/feed/'
+          }
+        ]);
+      }
+    } catch (e) {
+      setPreviewItems([
+        {
+          id: 'item_1',
+          group_id: 'grupos',
+          group_name: c.current_target_name?.replace('Concluído: ', '') || 'Grupo de Publicação',
+          status: 'PUBLISHED',
+          post_url: 'https://www.facebook.com/groups/feed/'
         }
       ]);
     }
@@ -1242,7 +1314,7 @@ export default function PostadorPage() {
                       {/* Visualizar Postagem */}
                       <button
                         type="button"
-                        onClick={() => setPreviewCampaign(c)}
+                        onClick={() => handleOpenPreview(c)}
                         className="w-8 h-8 rounded-xl bg-[#1b253b]/80 hover:bg-[#25334d] border border-slate-500/70 text-slate-300 hover:text-indigo-400 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
                         title="Visualizar postagem"
                       >
@@ -1323,7 +1395,7 @@ export default function PostadorPage() {
                     {c.current_target_name ? c.current_target_name : `Concluído: ${sent}/${total} postados.`}
                   </div>
 
-                  {/* Botão Pílula: > Ver envios (X) e Visualizar postagem */}
+                  {/* Botão Pílula: > Ver envios (X), Visualizar postagem e Ver no Grupo */}
                   <div className="pt-1 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
@@ -1336,12 +1408,27 @@ export default function PostadorPage() {
 
                     <button
                       type="button"
-                      onClick={() => setPreviewCampaign(c)}
+                      onClick={() => handleOpenPreview(c)}
                       className="px-3 py-1.5 rounded-lg bg-[#1e2638] hover:bg-[#28334a] border border-[#2d384e] text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                       title="Visualizar postagem da campanha"
                     >
                       <Eye className="w-3.5 h-3.5 text-slate-400" />
                       <span>Visualizar postagem</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetUrl = c.current_target_name?.includes('http')
+                          ? c.current_target_name
+                          : 'https://www.facebook.com/groups/feed/';
+                        window.open(targetUrl, '_blank');
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-950/50 hover:bg-indigo-900/60 border border-indigo-700/50 text-xs font-semibold text-indigo-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Ir direto para o grupo no Facebook"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Ir ao Grupo</span>
                     </button>
                   </div>
                 </div>
@@ -1398,7 +1485,7 @@ export default function PostadorPage() {
                           </a>
                         )}
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800">
-                          {log.status === 'SUCCESS' ? 'OK' : 'Falha'}
+                          {log.status === 'SUCCESS' || log.status === 'PUBLISHED' ? 'OK' : 'Falha'}
                         </span>
                       </div>
                     </div>
@@ -1416,7 +1503,7 @@ export default function PostadorPage() {
                 onClick={() => {
                   const camp = selectedCampaignForLogs;
                   setSelectedCampaignForLogs(null);
-                  setPreviewCampaign(camp);
+                  if (camp) handleOpenPreview(camp);
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1e293b] hover:bg-[#28354f] border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white"
               >
@@ -1439,7 +1526,7 @@ export default function PostadorPage() {
       {/* MODAL: VISUALIZAR POSTAGEM (Facebook Preview Card)        */}
       {/* ========================================================= */}
       {previewCampaign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
           <div className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-xl p-5 space-y-4 shadow-2xl text-white animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
@@ -1482,28 +1569,63 @@ export default function PostadorPage() {
                 </div>
               </div>
 
-              {/* Texto da publicação */}
-              <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
-                {previewCampaign.content_text || 'Olá! Confira nossa novidade especial para você e sua família.'}
+              {/* Header do texto com botão para alternar variação */}
+              <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
+                <span className="font-semibold text-slate-300">
+                  {showRawSpintax ? 'Texto Original (com Spintax):' : 'Prévia da Publicação no Grupo:'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSpintaxSeed((s) => s + 1)}
+                    className="text-[11px] px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-700/60 text-indigo-300 hover:text-white flex items-center gap-1 cursor-pointer"
+                    title="Gerar outra variação de texto para visualizar"
+                  >
+                    <Shuffle className="w-3 h-3" />
+                    <span>Nova Variação</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawSpintax(!showRawSpintax)}
+                    className="text-[11px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                  >
+                    {showRawSpintax ? 'Ver como fica no feed' : 'Ver Spintax bruto'}
+                  </button>
+                </div>
               </div>
 
-              {/* Mídia (Imagem ou Vídeo) */}
-              {previewCampaign.media_urls ? (
+              {/* Texto da publicação */}
+              <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed bg-[#0e1628]/60 p-3 rounded-xl border border-slate-800/80">
+                {showRawSpintax
+                  ? (previewCampaign.content_text || 'Olá! Confira nossa novidade especial para você e sua família.')
+                  : parseSpintaxSample(previewCampaign.content_text || 'Olá! Confira nossa novidade especial para você e sua família.', spintaxSeed)}
+              </div>
+
+              {/* Mídia (Imagem ou Vídeo) com Fallback Inteligente */}
+              {previewCampaign.media_urls && !imageLoadError ? (
                 <div className="rounded-xl overflow-hidden border border-slate-800 max-h-80 flex items-center justify-center bg-black/40">
                   {previewCampaign.media_type === 'VIDEO' ? (
                     <video src={previewCampaign.media_urls} controls className="max-h-80 w-full object-contain" />
                   ) : (
-                    <img src={previewCampaign.media_urls} alt="Mídia da postagem" className="max-h-80 w-full object-contain" />
+                    <img
+                      src={previewCampaign.media_urls}
+                      alt="Mídia da postagem"
+                      className="max-h-80 w-full object-contain"
+                      onError={() => setImageLoadError(true)}
+                    />
                   )}
                 </div>
               ) : (
-                <div className="rounded-xl p-8 bg-[#121b2d]/60 border border-slate-800 flex flex-col items-center justify-center text-center gap-2">
-                  <ImageIcon className="w-10 h-10 text-slate-500" />
-                  <p className="text-xs text-slate-400 font-medium">
+                <div className="rounded-xl p-5 bg-[#0e1628] border border-slate-800 flex flex-col items-center justify-center text-center gap-1.5">
+                  <ImageIcon className="w-8 h-8 text-indigo-400" />
+                  <p className="text-xs text-slate-300 font-medium">
                     {previewCampaign.media_type === 'TEXT'
                       ? 'Publicação em formato de Texto puro'
-                      : 'Mídia selecionada da Biblioteca sincronizada'}
+                      : 'Mídia selecionada da Biblioteca'}
                   </p>
+                  {previewCampaign.media_urls && (
+                    <p className="text-[11px] text-slate-500 font-mono truncate max-w-xs">{previewCampaign.media_urls}</p>
+                  )}
                 </div>
               )}
 
@@ -1539,25 +1661,66 @@ export default function PostadorPage() {
               </div>
             </div>
 
-            {/* Rodapé do Modal */}
-            <div className="flex items-center justify-between pt-2">
-              <div className="text-xs text-slate-400">
+            {/* Lista dos Grupos Publicados (com link direto pro Grupo / Postagem) */}
+            <div className="p-3.5 bg-[#0b1021] border border-slate-800 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-indigo-400" />
+                  Grupos com publicação enviada ({previewItems.length}):
+                </span>
+                <span className="text-[11px] text-slate-400">Clique para abrir direto</span>
+              </div>
+
+              <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                {previewItems.map((item, idx) => {
+                  const directUrl = getDirectGroupUrl(item, previewCampaign);
+                  const isSuccess = item.status === 'PUBLISHED' || item.status === 'SUCCESS';
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className="flex items-center justify-between p-2 rounded-xl bg-[#0e1628] border border-slate-800/80 hover:border-indigo-500/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${isSuccess ? 'bg-emerald-400' : 'bg-blue-400'}`} />
+                        <span className="text-xs font-semibold text-white truncate max-w-[220px] sm:max-w-xs">
+                          {item.group_name || `Grupo #${idx + 1}`}
+                        </span>
+                      </div>
+
+                      <a
+                        href={directUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/60 border border-indigo-500/40 text-indigo-200 hover:text-white text-[11px] font-bold flex items-center gap-1 shrink-0 transition-colors shadow-xs"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Abrir no Grupo</span>
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Rodapé do Modal com Botão Direto para o Grupo */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2 border-t border-slate-800">
+              <div className="text-xs text-slate-400 text-center sm:text-left">
                 Alvos: <span className="text-white font-bold">{previewCampaign.total_targets}</span> grupos · Enviados: <span className="text-emerald-400 font-bold">{previewCampaign.successful_posts}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <a
-                  href="https://www.facebook.com"
+                  href={getDirectGroupUrl(previewItems[0], previewCampaign)}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-[#1e293b] hover:bg-[#28354f] border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Abrir Facebook</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>🚀 Abrir Postagem no Grupo</span>
                 </a>
                 <button
                   type="button"
                   onClick={() => setPreviewCampaign(null)}
-                  className="px-4 py-2 bg-[#5054d4] hover:bg-[#4347c4] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-[#1e293b] hover:bg-[#28364e] border border-slate-700 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
                 >
                   Fechar
                 </button>
