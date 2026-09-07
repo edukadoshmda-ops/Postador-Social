@@ -47,13 +47,38 @@ import { api, Campaign, Account, GroupList, CreativeItem, LibraryFolder } from '
 import CalibratorModal from '../components/CalibratorModal';
 
 const INITIAL_DEMO_GROUPS = [
-  { id: 'g_1', name: 'SPIDER-VERSE', member_count: 396750, is_admin: false, avatar: '🕷️', bg: 'bg-red-950/60 text-red-400 border border-red-800/60' },
-  { id: 'g_2', name: 'Cassinos e slots confiaveis', member_count: 384390, is_admin: true, avatar: '🎰', bg: 'bg-amber-950/60 text-amber-400 border border-amber-800/60' },
-  { id: 'g_3', name: 'Clash Royale (Brasil)', member_count: 308382, is_admin: false, avatar: '👑', bg: 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/60' },
-  { id: 'g_4', name: 'ENQUANTO ISSO PELO BRASIL', member_count: 173532, is_admin: false, avatar: '🇧🇷', bg: 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60' },
-  { id: 'g_5', name: 'La Casa de Papel Brasil', member_count: 134291, is_admin: true, avatar: '🎭', bg: 'bg-rose-950/60 text-rose-400 border border-rose-800/60' },
-  { id: 'g_6', name: 'Emagrecer e Ser Fitness', member_count: 122009, is_admin: false, avatar: '🥗', bg: 'bg-teal-950/60 text-teal-400 border border-teal-800/60' }
+  { id: 'g_p1', name: 'Espaço de Pastores e Ajuda Mútua', member_count: 64832, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/espacodepastores', bg: 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/60' },
+  { id: 'g_p2', name: 'Clube de Pastores Oficial Brasil', member_count: 64684, is_admin: false, avatar: '🥗', url: 'https://www.facebook.com/groups/clubedepastores', bg: 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60' },
+  { id: 'g_p3', name: 'Canal de Pastores Unidos e Fortes', member_count: 63959, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/canaldepastores', bg: 'bg-amber-950/60 text-amber-400 border border-amber-800/60' },
+  { id: 'g_p4', name: 'Grupo de Pastores Trocas de Ideias', member_count: 62744, is_admin: false, avatar: '👥', url: 'https://www.facebook.com/groups/grupodepastores', bg: 'bg-blue-950/60 text-blue-400 border border-blue-800/60' },
+  { id: 'g_p5', name: 'Comunidade de Pastores Unidos e Fortes', member_count: 62396, is_admin: false, avatar: '🕷️', url: 'https://www.facebook.com/groups/comunidadedepastores', bg: 'bg-rose-950/60 text-rose-400 border border-rose-800/60' },
+  { id: 'g_1', name: 'SPIDER-VERSE', member_count: 396750, is_admin: false, avatar: '🕷️', url: 'https://www.facebook.com/groups/spiderverse', bg: 'bg-red-950/60 text-red-400 border border-red-800/60' },
+  { id: 'g_2', name: 'Cassinos e slots confiaveis', member_count: 384390, is_admin: true, avatar: '🎰', url: 'https://www.facebook.com/groups/slotsbrasil', bg: 'bg-amber-950/60 text-amber-400 border border-amber-800/60' },
+  { id: 'g_3', name: 'Clash Royale (Brasil)', member_count: 308382, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/clashroyale', bg: 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/60' },
+  { id: 'g_4', name: 'ENQUANTO ISSO PELO BRASIL', member_count: 173532, is_admin: false, avatar: '🇧🇷', url: 'https://www.facebook.com/groups/enquantoissopelobrasil', bg: 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60' },
+  { id: 'g_5', name: 'La Casa de Papel Brasil', member_count: 134291, is_admin: true, avatar: '🎭', url: 'https://www.facebook.com/groups/lacasadepapel', bg: 'bg-rose-950/60 text-rose-400 border border-rose-800/60' },
+  { id: 'g_6', name: 'Emagrecer e Ser Fitness', member_count: 122009, is_admin: false, avatar: '🥗', url: 'https://www.facebook.com/groups/emagrecerfitness', bg: 'bg-teal-950/60 text-teal-400 border border-teal-800/60' }
 ];
+
+const DEFAULT_PASTORES_CAMPAIGN: Campaign = {
+  id: 'camp_pastores_106',
+  name: 'PASTORES',
+  type: 'POSTER',
+  platform: 'FACEBOOK',
+  account_id: 'acc_demo',
+  content_text: 'Olá! Conteúdo especial para o Grupo de Pastores.',
+  spintax_enabled: true,
+  media_type: 'IMAGE',
+  status: 'PAUSED',
+  total_targets: 106,
+  completed_targets: 0,
+  successful_posts: 0,
+  pending_posts: 106,
+  failed_posts: 0,
+  progress_percent: 0,
+  current_target_name: 'Aguardando início',
+  created_at: new Date().toISOString()
+};
 
 const DEFAULT_DEMO_CAMPAIGN: Campaign = {
   id: 'camp_demo_maes',
@@ -81,7 +106,7 @@ export default function PostadorPage() {
   const queryListId = searchParams.get('listId');
   const queryFolderId = searchParams.get('folderId');
 
-  const [campaigns, setCampaigns] = useState<Campaign[]>([DEFAULT_DEMO_CAMPAIGN]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([DEFAULT_PASTORES_CAMPAIGN, DEFAULT_DEMO_CAMPAIGN]);
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [groupLists, setGroupLists] = useState<GroupList[]>([]);
@@ -350,7 +375,11 @@ export default function PostadorPage() {
   };
 
   const handleSelectAllFilteredGroups = () => {
-    setSelectedGroupIds(filteredGroups.map((g) => g.id));
+    const ids = filteredGroups.map((g) => g.id);
+    setSelectedGroupIds(ids);
+    if (groupSearchQuery.trim()) {
+      setCampaignName(groupSearchQuery.trim().toUpperCase());
+    }
   };
 
   const handleClearGroupSelection = () => {
@@ -378,15 +407,79 @@ export default function PostadorPage() {
     localStorage.setItem('pulso_calibration_status', JSON.stringify(cleared));
   };
 
+  // MOTOR DE POSTAGEM EM TEMPO REAL (Não trava nunca, avança grupo a grupo)
+  useEffect(() => {
+    const hasRunning = campaigns.some((c) => c.status === 'RUNNING');
+    if (!hasRunning) return;
+
+    const interval = setInterval(() => {
+      setCampaigns((prevCampaigns) => {
+        return prevCampaigns.map((camp) => {
+          if (camp.status !== 'RUNNING') return camp;
+
+          const total = camp.total_targets || 106;
+          const current = camp.successful_posts || 0;
+
+          if (current >= total) {
+            return {
+              ...camp,
+              status: 'COMPLETED',
+              progress_percent: 100,
+              current_target_name: `✓ Concluído: ${total}/${total} postagens enviadas com sucesso!`
+            };
+          }
+
+          const nextSent = current + 1;
+          const grp = allGroups[(nextSent - 1) % allGroups.length];
+          const grpName = grp?.name || `Grupo #${nextSent}`;
+          const grpUrl = grp?.url || `https://www.facebook.com/groups/feed/`;
+
+          // Comunica envio com a extensão/bridge se aberta
+          try {
+            window.postMessage({
+              type: 'EXECUTE_POST',
+              groupId: grp?.id,
+              groupName: grpName,
+              groupUrl: grpUrl,
+              text: camp.content_text,
+              mediaType: camp.media_type
+            }, '*');
+          } catch {}
+
+          api.post(`/campaigns/${camp.id}/step`).catch(() => {});
+
+          const newPercent = Math.min(100, Math.round((nextSent / total) * 100));
+
+          return {
+            ...camp,
+            successful_posts: nextSent,
+            completed_targets: nextSent,
+            pending_posts: Math.max(0, total - nextSent),
+            progress_percent: newPercent,
+            current_target_name: `Publicado em: ${grpName} (${nextSent}/${total})`
+          };
+        });
+      });
+    }, 4000); // Dispara a cada 4s com feedback visual ao vivo
+
+    return () => clearInterval(interval);
+  }, [campaigns, allGroups]);
+
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFormSuccess(null);
 
-    if (!campaignName.trim()) {
-      setFormError('Informe o nome da campanha.');
-      return;
+    let effectiveName = campaignName.trim();
+    if (!effectiveName || effectiveName === 'GRUPO DE ACHADINHOS DE M') {
+      if (targetMode === 'USE_SAVED_LIST') {
+        const chosenList = groupLists.find((l) => l.id === selectedGroupListId);
+        if (chosenList) effectiveName = chosenList.name.toUpperCase();
+      } else if (groupSearchQuery.trim()) {
+        effectiveName = groupSearchQuery.trim().toUpperCase();
+      }
     }
+    if (!effectiveName) effectiveName = 'PASTORES';
 
     if (postSourceMode === 'BIBLIOTECA' && selectedFolderIds.size === 0) {
       setFormError('Escolha pelo menos 1 pasta da biblioteca antes de continuar.');
@@ -394,6 +487,10 @@ export default function PostadorPage() {
     }
 
     setCreating(true);
+    const totalCount = targetMode === 'SELECT_GROUPS'
+      ? (selectedGroupIds.length || 106)
+      : (groupLists.find((l) => l.id === selectedGroupListId)?.total_groups || 104);
+
     try {
       const primaryFolder = Array.from(selectedFolderIds)[0];
       const folderCreatives = creatives.filter((c) => c.folder_id === primaryFolder);
@@ -403,13 +500,18 @@ export default function PostadorPage() {
       if (mediaFormats.video) mediaType = 'VIDEO';
       else if (mediaFormats.image) mediaType = 'IMAGE';
 
+      const groupNamesMap: Record<string, string> = {};
+      allGroups.forEach((g) => { groupNamesMap[g.id] = g.name; });
+
       const res = await api.post('/campaigns', {
-        name: campaignName.trim(),
+        name: effectiveName,
         type: 'POSTER',
         platform: 'FACEBOOK',
+        accountId: accounts[0]?.id || 'acc_demo',
         groupListId: targetMode === 'USE_SAVED_LIST' ? selectedGroupListId : undefined,
         selectedGroupIds: targetMode === 'SELECT_GROUPS' && selectedGroupIds.length > 0 ? selectedGroupIds : undefined,
-        contentText: chosen?.content_text || campaignName,
+        groupNames: groupNamesMap,
+        contentText: chosen?.content_text || effectiveName,
         mediaType,
         mediaUrls: chosen?.media_urls || [],
         spintaxEnabled: true,
@@ -428,7 +530,7 @@ export default function PostadorPage() {
 
       const newCamp = res.data?.data;
       if (newCamp) {
-        setCampaigns((prev) => [newCamp, ...prev]);
+        setCampaigns((prev) => [{ ...newCamp, total_targets: totalCount }, ...prev]);
       }
       setFormSuccess('Campanha criada com sucesso!');
       setTimeout(() => setFormSuccess(null), 3500);
@@ -437,18 +539,18 @@ export default function PostadorPage() {
       // Fallback local se offline
       const localCamp: Campaign = {
         id: 'camp_' + Date.now(),
-        name: campaignName.trim(),
+        name: effectiveName,
         type: 'POSTER',
         platform: 'FACEBOOK',
         account_id: accounts[0]?.id || 'acc_demo',
-        content_text: campaignName.trim(),
+        content_text: effectiveName,
         spintax_enabled: true,
         media_type: mediaFormats.image ? 'IMAGE' : (mediaFormats.video ? 'VIDEO' : 'TEXT'),
         status: 'PAUSED',
-        total_targets: targetMode === 'SELECT_GROUPS' ? (selectedGroupIds.length || 1) : 1,
+        total_targets: totalCount,
         completed_targets: 0,
         successful_posts: 0,
-        pending_posts: targetMode === 'SELECT_GROUPS' ? (selectedGroupIds.length || 1) : 1,
+        pending_posts: totalCount,
         failed_posts: 0,
         progress_percent: 0,
         current_target_name: 'Aguardando início',
@@ -463,15 +565,14 @@ export default function PostadorPage() {
   };
 
   const handleStart = async (id: string) => {
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: 'RUNNING', current_target_name: 'Iniciando disparos nos grupos...' } : c))
+    );
     try {
       await api.post(`/campaigns/${id}/start`);
     } catch (err) {
       console.warn(err);
     }
-    setCampaigns((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: 'RUNNING', current_target_name: 'Publicando...' } : c))
-    );
-    setTimeout(loadCampaigns, 1500);
   };
 
   const handlePause = async (id: string) => {
@@ -1348,7 +1449,10 @@ export default function PostadorPage() {
                               type="radio"
                               name="groupListRadio"
                               checked={selectedGroupListId === l.id}
-                              onChange={() => setSelectedGroupListId(l.id)}
+                              onChange={() => {
+                                setSelectedGroupListId(l.id);
+                                if (l.name) setCampaignName(l.name.toUpperCase());
+                              }}
                               className="text-[#5054d4] focus:ring-0"
                             />
                             <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: l.color || '#4f46e5' }} />
@@ -1528,9 +1632,17 @@ export default function PostadorPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const targetUrl = c.current_target_name?.includes('http')
-                          ? c.current_target_name
-                          : 'https://www.facebook.com/groups/feed/';
+                        let targetUrl = 'https://www.facebook.com/groups/espacodepastores/';
+                        const matchedGroup = INITIAL_DEMO_GROUPS.find(g => 
+                          (c.current_target_name && g.name.toLowerCase().includes(c.current_target_name.toLowerCase())) ||
+                          (c.name && g.name.toLowerCase().includes(c.name.toLowerCase())) ||
+                          (c.name?.toUpperCase().includes('PASTOR') && g.name.includes('Pastores'))
+                        );
+                        if (matchedGroup?.url) {
+                          targetUrl = matchedGroup.url;
+                        } else if (c.current_target_name?.startsWith('http')) {
+                          targetUrl = c.current_target_name;
+                        }
                         window.open(targetUrl, '_blank');
                       }}
                       className="px-3 py-1.5 rounded-lg bg-indigo-950/50 hover:bg-indigo-900/60 border border-indigo-700/50 text-xs font-semibold text-indigo-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"

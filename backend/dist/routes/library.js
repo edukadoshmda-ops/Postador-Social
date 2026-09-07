@@ -86,6 +86,17 @@ exports.libraryRouter.delete('/folders/:id', (req, res) => {
         return (0, responseHandler_1.sendError)(res, error.message);
     }
 });
+// POST Empty folder
+exports.libraryRouter.post('/folders/:id/empty', (req, res) => {
+    try {
+        const { id } = req.params;
+        db_1.db.prepare('UPDATE creative_library SET folder_id = NULL WHERE folder_id = ?').run(id);
+        return (0, responseHandler_1.sendSuccess)(res, { emptied: true }, 'Pasta esvaziada com sucesso');
+    }
+    catch (error) {
+        return (0, responseHandler_1.sendError)(res, error.message);
+    }
+});
 // POST Move item to folder
 exports.libraryRouter.post('/items/:id/folder', (req, res) => {
     try {

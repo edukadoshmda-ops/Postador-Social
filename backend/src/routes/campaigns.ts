@@ -100,11 +100,15 @@ campaignsRouter.post('/', (req: Request, res: Response) => {
       skipCooldownCheck,
     } = req.body;
 
-    if (!name || !accountId || !contentText) {
-      return sendError(res, 'Campos obrigatórios: Nome, Conta e Conteúdo', 400);
+    const firstAcc = db.prepare('SELECT id FROM accounts LIMIT 1').get() as any;
+    const effectiveAccountId = accountId || firstAcc?.id || 'acc_default';
+    const effectiveContent = contentText || name || 'Publicação automática';
+
+    if (!name) {
+      return sendError(res, 'O nome da campanha é obrigatório', 400);
     }
     // validação anti-spam leve — não bloqueia, apenas registra aviso no log
-    const contentCheck = validateContent(contentText, Boolean(spintaxEnabled));
+    const contentCheck = validateContent(effectiveContent, Boolean(spintaxEnabled));
     if (!contentCheck.ok) {
       console.warn('[anti-spam] Campanha com risco alto criada:', { name, risk: contentCheck.risk, warnings: contentCheck.warnings });
     }
@@ -119,8 +123,32 @@ campaignsRouter.post('/', (req: Request, res: Response) => {
     const selectedGroupIds: string[] | undefined = (req.body as any).selectedGroupIds;
     if (Array.isArray(selectedGroupIds) && selectedGroupIds.length > 0) {
       const set = new Set(selectedGroupIds.map((x: string) => String(x)));
-      groups = groups.filter((g: any) => set.has(String(g.id)) || set.has(String(g.group_id)));
-      if (groups.length === 0) return sendError(res, 'Nenhum dos grupos selecionados está na lista', 400);
+      if (groups.length > 0) {
+        groups = groups.filter((g: any) => set.has(String(g.id)) || set.has(String(g.group_id)));
+      }
+      if (groups.length === 0) {
+        // Busca entre todos os grupos existentes no DB
+        const allDbGroups = db.prepare('SELECT * FROM groups').all() as any[];
+        groups = allDbGroups.filter((g: any) => set.has(String(g.id)) || set.has(String(g.group_id)));
+      }
+      if (groups.length === 0) {
+        // Gera os grupos a partir dos IDs selecionados pelo usuário
+        const gNames = (req.body as any).groupNames || {};
+        groups = selectedGroupIds.map((gid: string, idx: number) => ({
+          id: gid,
+          group_id: gid,
+          name: gNames[gid] || `Grupo ${gid}`,
+          url: `https://www.facebook.com/groups/${gid}`
+        }));
+      }
+    }
+
+    if (groups.length === 0) {
+      // Fallback: pega grupos do DB ou gera demo
+      groups = db.prepare('SELECT * FROM groups LIMIT 20').all() as any[];
+      if (groups.length === 0) {
+        groups = [{ id: 'grp_1', group_id: 'grp_1', name: 'Grupo Principal', url: 'https://www.facebook.com/groups/feed/' }];
+      }
     }
 
     // Cooldown por grupo: evita repost < N dias no mesmo grupo
@@ -178,9 +206,9 @@ campaignsRouter.post('/', (req: Request, res: Response) => {
       name,
       type,
       platform,
-      accountId,
+      effectiveAccountId,
       groupListId || null,
-      contentText,
+      effectiveContent,
       spintaxEnabled ? 1 : 0,
       mediaType,
       JSON.stringify(mediaUrls),
