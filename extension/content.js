@@ -343,7 +343,20 @@ async function executePostInCurrentTab(text) {
   try {
     if (!text || !text.trim()) throw new Error('Texto da postagem vazio');
 
-    showVisualBanner('⚡ <b>Pulso Social</b>: Localizando caixa de publicação no Facebook...', '#4f46e5');
+    // Auto-recuperação se o Facebook caiu na tela de "conteúdo não disponível" (print do cadeado)
+    const checkUnavailable = () => {
+      const bText = (document.body?.innerText || '').toLowerCase();
+      return bText.includes('este conteúdo não está disponível') ||
+             bText.includes('esta página não está disponível') ||
+             bText.includes('página não foi encontrada') ||
+             bText.includes('link que você seguiu pode ter expirado');
+    };
+
+    if (checkUnavailable()) {
+      showVisualBanner('🔄 Redirecionando para o Feed de Grupos do Facebook...', '#3b82f6');
+      location.href = 'https://www.facebook.com/groups/feed/';
+      return { ok: false, error: 'Link do grupo indisponível no Facebook, redirecionando para Feed de Grupos' };
+    }
 
     // Faz rolagem suave para baixo para forçar o Facebook a carregar o composer
     window.scrollBy({ top: 250, behavior: 'smooth' });
