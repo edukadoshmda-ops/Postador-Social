@@ -41,15 +41,16 @@ export class CampaignRunner {
       return { message: 'Campanha já está em execução' };
     }
 
-    // Validação de sessão/conta antes de iniciar — com fallback seguro
-    let account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(campaign.account_id) as any;
+    // Campanhas do Facebook precisam de uma conta real sincronizada.
+    const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(campaign.account_id) as any;
     if (!account) {
-      account = db.prepare('SELECT * FROM accounts LIMIT 1').get() as any;
-      if (!account) {
-        account = { id: 'acc_demo', name: 'Conta Principal', status: 'ACTIVE', trust_score: 95 };
-      }
+      throw new Error('Nenhuma conta real foi selecionada para esta campanha. Conecte uma conta do Facebook em Contas.');
     }
-    const cookiesOk = account.cookies && String(account.cookies).length >= 100;
+    const cookieStr = String(account.cookies || '');
+    const cookiesOk = cookieStr.length > 200 && cookieStr.includes('c_user') && cookieStr.includes('xs');
+    if (campaign.platform === 'FACEBOOK' && !cookiesOk) {
+      throw new Error('A conta selecionada não tem uma sessão real do Facebook sincronizada. Faça login no Chrome e sincronize c_user e xs pela extensão antes de iniciar.');
+    }
 
     if (!campaign.total_targets || campaign.total_targets === 0) {
       // Se a campanha não tiver targets, garante que tem pelo menos 1 grupo
@@ -80,9 +81,7 @@ export class CampaignRunner {
     // Launch async processor
     this.processNextItem(campaignId);
 
-    return {
-      message: cookiesOk ? 'Campanha iniciada com sucesso' : 'Campanha iniciada em MODO SIMULAÇÃO (sem cookies reais) — configure a sessão em Configurações > Contas para postagens reais',
-    };
+    return { message: 'Campanha iniciada com sucesso' };
   }
 
   static pauseCampaign(campaignId: string) {

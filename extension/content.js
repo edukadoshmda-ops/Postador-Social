@@ -339,7 +339,39 @@ async function insertTextIntoLexical(editor, text) {
   await sleep(400);
 }
 
-async function executePostInCurrentTab(text) {
+async function loadMediaFile(mediaUrl, mediaType) {
+  if (!mediaUrl || mediaType === 'TEXT') return null;
+  const response = await fetch(mediaUrl, { credentials: 'include' });
+  if (!response.ok) throw new Error(`Não foi possível baixar a mídia (${response.status}).`);
+  const blob = await response.blob();
+  const extension = mediaType === 'VIDEO' ? 'mp4' : 'jpg';
+  const mime = blob.type || (mediaType === 'VIDEO' ? 'video/mp4' : 'image/jpeg');
+  return new File([blob], `pulso-media.${extension}`, { type: mime });
+}
+
+async function attachMediaToComposer(dialog, mediaFile, mediaType) {
+  if (!mediaFile) return;
+  const selector = mediaType === 'VIDEO'
+    ? 'input[type="file"][accept*="video"], input[type="file"]'
+    : 'input[type="file"][accept*="image"], input[type="file"]';
+  const input = dialog.querySelector(selector) || document.querySelector(selector);
+  if (!input) throw new Error('O Facebook não exibiu o campo de upload de mídia no editor.');
+  const transfer = new DataTransfer();
+  transfer.items.add(mediaFile);
+  input.files = transfer.files;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const preview = mediaType === 'VIDEO'
+      ? dialog.querySelector('video, [aria-label*="vídeo" i], [aria-label*="video" i]')
+      : dialog.querySelector('img[src*="blob:"], img[src*="scontent"], [aria-label*="foto" i], [aria-label*="photo" i]');
+    if (preview) return;
+    await sleep(500);
+  }
+  throw new Error('A mídia foi selecionada, mas o Facebook não confirmou o preview.');
+}
+
+async function executePostInCurrentTab(text, media = {}) {
   try {
     if (!text || !text.trim()) throw new Error('Texto da postagem vazio');
 
@@ -366,10 +398,12 @@ async function executePostInCurrentTab(text) {
     let trigger = null;
     const isExcluded = (str) => {
       const s = (str || '').toLowerCase();
+      if (s.includes('escreva algo') || s.includes('no que você está pensando') || s.includes('crie uma publicação') || s.includes('write something')) {
+        return false;
+      }
       return s.includes('coment') || s.includes('responder') || s.includes('reply') ||
              s.includes('compartilhar') || s.includes('share') || s.includes('pesquisar') ||
-             s.includes('busca') || s.includes('search') || s.includes('curtir') || s.includes('like') ||
-             s.includes('anônimo') || s.includes('sentimento') || s.includes('enquete');
+             s.includes('busca') || s.includes('search') || s.includes('curtir') || s.includes('like');
     };
 
     for (let attempt = 0; attempt < 28; attempt++) {
@@ -433,6 +467,39 @@ async function executePostInCurrentTab(text) {
       await sleep(500);
     }
 
+    // Se não encontrou o composer direto e está em página de lista (/groups/joins, busca, etc.), clica no primeiro 'Ver grupo'
+    if (!trigger) {
+      const visitBtn = Array.from(document.querySelectorAll('div[role="button"], a, span')).find(el => {
+        const t = (el.innerText || el.textContent || '').trim().toLowerCase();
+        return (t === 'ver grupo' || t === 'visitar' || t === 'visit group' || t === 'view group') && el.getBoundingClientRect().height > 10;
+      });
+
+      if (visitBtn) {
+        showVisualBanner('🔍 Entrando na página interna do grupo para publicar...', '#3b82f6');
+        const clickable = visitBtn.closest('a') || visitBtn.closest('div[role="button"]') || visitBtn;
+        clickable.click();
+        await sleep(3500);
+
+        // Tenta novamente localizar o composer após entrar no grupo
+        for (let attempt = 0; attempt < 20; attempt++) {
+          for (const sel of primarySelectors) {
+            const els = Array.from(document.querySelectorAll(sel));
+            for (const el of els) {
+              const t = (el.innerText || el.getAttribute('aria-label') || '').trim();
+              if (isExcluded(t)) continue;
+              if (el.getBoundingClientRect().width > 30) {
+                trigger = el;
+                break;
+              }
+            }
+            if (trigger) break;
+          }
+          if (trigger) break;
+          await sleep(500);
+        }
+      }
+    }
+
     if (!trigger) {
       // Checa se usuário realmente não é membro
       const headerJoinBtn = document.querySelector('div[data-pagelet*="GroupHeader"] [role="button"]');
@@ -492,6 +559,15 @@ async function executePostInCurrentTab(text) {
     showVisualBanner('📝 <b>Pulso Social</b>: Inserindo mensagem...', '#8b5cf6');
     await insertTextIntoLexical(editor, text);
     await sleep(1500);
+
+    if (media.mediaType !== 'TEXT') {
+      if (!media.mediaUrl) throw new Error('A campanha selecionou mídia, mas não possui uma URL válida.');
+      showVisualBanner('📎 <b>Pulso Social</b>: Anexando mídia...', '#8b5cf6');
+      const dialog = document.querySelector('div[role="dialog"]') || document;
+      const mediaFile = await loadMediaFile(media.mediaUrl, media.mediaType);
+      await attachMediaToComposer(dialog, mediaFile, media.mediaType);
+      await sleep(1200);
+    }
 
     // Passo 5: Envia a publicação — dispara Ctrl+Enter e clica no botão azul Postar
     showVisualBanner('🚀 <b>Pulso Social</b>: Enviando postagem automaticamente...', '#10b981');
@@ -636,7 +712,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === 'POST_TO_GROUP') {
     (async () => {
-      const result = await executePostInCurrentTab(msg.text);
+      const result = await executePostInCurrentTab(msg.text, {
+        mediaType: msg.mediaType || 'TEXT',
+        mediaUrl: msg.mediaUrl || '',
+      });
       sendResponse(result);
     })();
     return true; // async
@@ -697,61 +776,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }, true);
 })();
 
-// =========================================================
-// BOTÃO FLUTUANTE EM GRUPOS DO FACEBOOK (PULSO SOCIAL)
-// Permite postar com 1 clique direto no grupo aberto
-// =========================================================
-(function setupFloatingGroupHelper() {
-  if (window.__pulsoFloaterSetup) return;
-  window.__pulsoFloaterSetup = true;
-
-  function checkAndInjectFloater() {
-    if (!location.href.includes('/groups/')) return;
-    if (document.getElementById('__pulso_floater')) return;
-
-    const floater = document.createElement('div');
-    floater.id = '__pulso_floater';
-    floater.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:999999;background:linear-gradient(135deg,#1e1b4b,#312e81);border:2px solid #818cf8;border-radius:16px;padding:10px 16px;box-shadow:0 12px 36px rgba(0,0,0,0.6);display:flex;align-items:center;gap:12px;font-family:system-ui,-apple-system,sans-serif;color:#fff;animation:fadeIn 0.3s ease;';
-    floater.innerHTML = `
-      <div style="font-size:20px;line-height:1;">⚡</div>
-      <div>
-        <div style="font-weight:700;font-size:13px;color:#c7d2fe;line-height:1.2;">Pulso Social PRO</div>
-        <div style="font-size:11px;color:#94a3b8;line-height:1.2;">Grupo pronto para postagem</div>
-      </div>
-      <button id="__pulso_floater_btn" style="background:#4f46e5;hover:background:#4338ca;color:#fff;border:none;padding:7px 16px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;box-shadow:0 4px 12px rgba(79,70,229,0.4);transition:all 0.2s;">
-        🚀 Postar Agora
-      </button>
-    `;
-    document.body.appendChild(floater);
-
-    const btn = document.getElementById('__pulso_floater_btn');
-    btn?.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      btn.disabled = true;
-      btn.innerText = 'Postando...';
-      try {
-        let postText = 'Olá amigos do grupo!';
-        try {
-          const stored = await chrome.storage.local.get('pulso_last_campaign_text');
-          if (stored && stored.pulso_last_campaign_text) {
-            postText = stored.pulso_last_campaign_text;
-          }
-        } catch {}
-        await executePostInCurrentTab(postText);
-      } catch (err) {
-        showVisualBanner('Erro ao postar: ' + (err?.message || err), '#ef4444');
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '🚀 Postar Agora';
-      }
-    });
-  }
-
-  setInterval(checkAndInjectFloater, 2000);
-})();
-
 try {
   chrome.runtime.sendMessage({ type: 'CONTENT_READY', url: location.href });
 } catch {}
+
+
+
 
 

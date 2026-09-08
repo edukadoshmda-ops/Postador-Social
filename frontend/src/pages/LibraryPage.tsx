@@ -43,73 +43,7 @@ const COLOR_SWATCHES = [
   '#3B82F6', '#F59E0B'
 ];
 
-const DEFAULT_FOLDERS: LibraryFolder[] = [
-  { id: 'f_venda_sem_trafego', name: 'Venda sem tráfego pago', color: '#4F46E5', count: 6 },
-  { id: 'f_venda_carros', name: 'VENDA DE CARROS', color: '#EF4444', count: 6 },
-  { id: 'f_maes', name: 'GRUPO MÃES', color: '#EC4899', count: 6 }
-];
-
 const DEFAULT_ITEMS: CreativeItem[] = [
-  {
-    id: 'item_mae_img_1',
-    title: 'IMAGEM 1',
-    category: 'Ambos',
-    content_text: 'Roupas, brinquedos e utilidades para os pequenos no grupo de achadinhos',
-    media_type: 'IMAGE',
-    media_urls: ['https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=500&auto=format&fit=crop&q=80'],
-    folder_id: 'f_maes',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'item_mae_img_3',
-    title: 'IMAGEM 3',
-    category: 'Ambos',
-    content_text: 'Mães, olha os achadinhos que encontrei para os pequenos! Entre no grupo',
-    media_type: 'IMAGE',
-    media_urls: ['https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=500&auto=format&fit=crop&q=80'],
-    folder_id: 'f_maes',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'item_mae_img_2',
-    title: 'IMAGEM 2',
-    category: 'Ambos',
-    content_text: 'Achadinhos e utilidades para mamães',
-    media_type: 'IMAGE',
-    media_urls: ['https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=500&auto=format&fit=crop&q=80'],
-    folder_id: 'f_maes',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'item_mae_txt_1',
-    title: 'TEXTO 1',
-    category: 'Ambos',
-    content_text: 'Oi mamães! Criei um grupo no WhatsApp com os melhores achadinhos e descontos para bebês e crianças. Quem quiser entrar comenta EU!',
-    media_type: 'TEXT',
-    media_urls: [],
-    folder_id: 'f_maes',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'item_mae_txt_2',
-    title: 'texto 2',
-    category: 'Ambos',
-    content_text: 'Dica do dia para mães práticas: economize em roupinhas e brinquedos educativos direto dos fornecedores. Link no primeiro comentário!',
-    media_type: 'TEXT',
-    media_urls: [],
-    folder_id: 'f_maes',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'item_mae_txt_3',
-    title: 'TEXTO 3',
-    category: 'Ambos',
-    content_text: 'Achadinhos de mães com até 70% de desconto na Shopee e Mercado Livre. Entre no grupo VIP para receber em primeira mão.',
-    media_type: 'TEXT',
-    media_urls: [],
-    folder_id: 'f_maes',
-    created_at: new Date().toISOString()
-  },
   {
     id: 'item_txt_01',
     title: 'TEXTO 01',
@@ -162,7 +96,7 @@ export default function LibraryPage() {
   const [folderFeedback, setFolderFeedback] = useState<string | null>(null);
 
   // Accordion state: set of open folder IDs
-  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set(['f_maes']));
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
 
   // Modals & Item Actions
   const [previewItem, setPreviewItem] = useState<CreativeItem | null>(null);
@@ -180,7 +114,14 @@ export default function LibraryPage() {
   const loadLibrary = async () => {
     try {
       const res = await api.get('/library');
-      const data = res.data.data || [];
+      const raw = res.data.data || [];
+      // Normaliza media_urls: o backend salva como JSON string, mas o frontend precisa de array
+      const data = raw.map((item: any) => ({
+        ...item,
+        media_urls: typeof item.media_urls === 'string'
+          ? (() => { try { return JSON.parse(item.media_urls); } catch { return []; } })()
+          : (Array.isArray(item.media_urls) ? item.media_urls : [])
+      }));
       if (data.length === 0) {
         setItems(DEFAULT_ITEMS);
         const actives: Record<string, boolean> = {};
@@ -198,22 +139,23 @@ export default function LibraryPage() {
     }
   };
 
+
   const loadFolders = async () => {
     try {
       const res = await api.get('/library/folders');
       const data = res.data.data || [];
-      if (data.length === 0) {
-        setFolders(DEFAULT_FOLDERS);
-        setTargetFolderId(DEFAULT_FOLDERS[0].id);
-      } else {
-        setFolders(data);
-        if (data.length > 0 && !targetFolderId) {
+      setFolders(data);
+      if (data.length > 0) {
+        if (!targetFolderId || !data.some((f: any) => f.id === targetFolderId)) {
           setTargetFolderId(data[0].id);
         }
+      } else {
+        setTargetFolderId('');
       }
     } catch (err) {
       console.warn('Erro ao carregar pastas:', err);
-      setFolders(DEFAULT_FOLDERS);
+      setFolders([]);
+      setTargetFolderId('');
     }
   };
 
@@ -412,7 +354,7 @@ export default function LibraryPage() {
         mediaUrls: mediaUrl ? [mediaUrl] : [],
         folderId: activeFolder,
       });
-      const created = res.data.data || {
+      const rawCreated = res.data.data || {
         id: 'item_' + Date.now(),
         title: finalTitle,
         category: targetScope,
@@ -422,6 +364,13 @@ export default function LibraryPage() {
         folder_id: activeFolder,
         created_at: new Date().toISOString()
       };
+      const created = {
+        ...rawCreated,
+        media_urls: typeof rawCreated.media_urls === 'string'
+          ? (() => { try { return JSON.parse(rawCreated.media_urls); } catch { return mediaUrl ? [mediaUrl] : []; } })()
+          : (Array.isArray(rawCreated.media_urls) ? rawCreated.media_urls : (mediaUrl ? [mediaUrl] : []))
+      };
+
       setItems((prev) => [created, ...prev]);
       setItemActiveStates((prev) => ({ ...prev, [created.id]: true }));
       setMediaTitle('');
@@ -1418,29 +1367,29 @@ export default function LibraryPage() {
       {/* ========================================================= */}
       {editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl text-white">
+          <div className="bg-[#121b2d] border border-slate-700 rounded-2xl w-full max-w-2xl p-10 space-y-6 shadow-2xl text-white">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-sm">Editar Mídia</h3>
+              <h3 className="font-bold text-base">Editar Mídia</h3>
               <button type="button" onClick={() => setEditingItem(null)} className="p-1 text-slate-400 hover:text-white">
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Título</label>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">Título</label>
               <input
                 type="text"
                 value={editingItem.title}
                 onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
-                className="w-full px-3.5 py-2 bg-[#0b1021] border border-slate-700 rounded-xl text-xs text-white"
+                className="w-full px-4 py-3 bg-[#0b1021] border border-slate-700 rounded-xl text-sm text-white"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Conteúdo</label>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">Conteúdo</label>
               <textarea
-                rows={4}
+                rows={10}
                 value={editingItem.content_text}
                 onChange={(e) => setEditingItem({ ...editingItem, content_text: e.target.value })}
-                className="w-full px-3.5 py-2 bg-[#0b1021] border border-slate-700 rounded-xl text-xs text-white resize-y"
+                className="w-full px-4 py-3 bg-[#0b1021] border border-slate-700 rounded-xl text-sm text-white resize-y"
               />
             </div>
             <div className="flex justify-end gap-2">

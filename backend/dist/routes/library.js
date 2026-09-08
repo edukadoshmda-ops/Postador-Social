@@ -135,15 +135,18 @@ exports.libraryRouter.put('/:id', (req, res) => {
         const item = db_1.db.prepare('SELECT * FROM creative_library WHERE id = ?').get(id);
         if (!item)
             return (0, responseHandler_1.sendError)(res, 'Item não encontrado', 404);
-        if (title !== undefined)
-            item.title = title;
-        if (contentText !== undefined)
-            item.content_text = contentText;
-        if (category !== undefined)
-            item.category = category;
-        if (folderId !== undefined)
-            item.folder_id = folderId;
-        return (0, responseHandler_1.sendSuccess)(res, item, 'Item atualizado com sucesso');
+        const newTitle = title !== undefined ? title : item.title;
+        const newContentText = contentText !== undefined ? contentText : item.content_text;
+        const newCategory = category !== undefined ? category : item.category;
+        const newFolderId = folderId !== undefined ? folderId : item.folder_id;
+        // Executa o UPDATE real no banco
+        db_1.db.prepare(`
+      UPDATE creative_library
+      SET title = ?, content_text = ?, category = ?, folder_id = ?
+      WHERE id = ?
+    `).run(newTitle, newContentText, newCategory, newFolderId, id);
+        const updated = db_1.db.prepare('SELECT * FROM creative_library WHERE id = ?').get(id);
+        return (0, responseHandler_1.sendSuccess)(res, updated, 'Item atualizado com sucesso');
     }
     catch (error) {
         return (0, responseHandler_1.sendError)(res, error.message);

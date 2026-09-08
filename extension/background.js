@@ -198,7 +198,7 @@ function stopAllPosting() {
   }
 }
 
-async function executePostForGroup(groupId, text, groupUrl = null, groupName = '') {
+async function executePostForGroup(groupId, text, groupUrl = null, groupName = '', media = null) {
   let tab = null;
   let isCreatedTab = false;
   try {
@@ -206,14 +206,17 @@ async function executePostForGroup(groupId, text, groupUrl = null, groupName = '
     const rawId = String(groupId || '').trim();
     const rawUrl = String(groupUrl || '').trim();
 
-    if (/^\d{5,}$/.test(rawId)) {
-      url = `https://www.facebook.com/groups/${rawId}`;
-    } else if (rawUrl.startsWith('http') && !rawUrl.includes('/groups/search/') && !rawUrl.includes('pastores_') && !rawUrl.includes('espacodepastores')) {
+    // Rejeita IDs internos do sistema (campanhas, pastas, criativos ou IDs mockados)
+    const isInternalId = /^(camp_|c_|lib_|item_|f_|fb_grp_|acc_|grp_17)/i.test(rawId);
+
+    if (rawUrl && rawUrl.startsWith('http') && !rawUrl.includes('/groups/search/')) {
       url = rawUrl;
-    } else if (rawId.startsWith('http') && !rawId.includes('/groups/search/')) {
-      url = rawId;
-    } else if (String(groupName || rawId).toLowerCase().includes('pastor')) {
-      url = 'https://www.facebook.com/groups/950669311656569';
+    } else if (!isInternalId && /^\d{4,}$/.test(rawId)) {
+      url = `https://www.facebook.com/groups/${rawId}`;
+    } else if (!isInternalId && rawId && !rawId.startsWith('http') && rawId.length > 3) {
+      url = `https://www.facebook.com/groups/${rawId}`;
+    } else {
+      url = 'https://www.facebook.com/groups/feed/';
     }
 
     // Salva o último texto disparado para uso no helper flutuante
@@ -221,16 +224,23 @@ async function executePostForGroup(groupId, text, groupUrl = null, groupName = '
       try { await chrome.storage.local.set({ pulso_last_campaign_text: text }); } catch {}
     }
 
-    // Checa se o usuário já tem uma aba do Facebook com grupo aberta
-    const allTabs = await chrome.tabs.query({ url: ['https://*.facebook.com/groups/*'] });
+    // Checa se o usuário já tem uma aba do Facebook aberta
+    const allTabs = await chrome.tabs.query({ url: ['https://*.facebook.com/groups/*', 'https://*.facebook.com/*'] });
     const activeTab = allTabs.find(t => t.active) || allTabs[0];
 
     if (activeTab && activeTab.id) {
       tab = activeTab;
       isCreatedTab = false;
-      // Se a aba já é um grupo ou o feed, foca nela
-      await chrome.tabs.update(tab.id, { active: true });
-      await new Promise(r => setTimeout(r, 600));
+      // Se a URL for específica e a aba não estiver nela, ou se a aba estiver em erro, navega
+      const currentUrl = activeTab.url || '';
+      const isErrorPage = currentUrl.includes('camp_') || currentUrl.includes('fb_grp_');
+      if (isErrorPage || (url && url !== 'https://www.facebook.com/groups/feed/' && currentUrl !== url)) {
+        await chrome.tabs.update(tab.id, { url, active: true });
+        await waitForTabToLoad(tab.id, 9000);
+      } else {
+        await chrome.tabs.update(tab.id, { active: true });
+        await new Promise(r => setTimeout(r, 600));
+      }
     } else {
       tab = await chrome.tabs.create({ url, active: true });
       isCreatedTab = true;
@@ -246,7 +256,14 @@ async function executePostForGroup(groupId, text, groupUrl = null, groupName = '
     await ensureContentScriptInjected(tab.id);
     await new Promise(r => setTimeout(r, 1200));
 
-    const res = await chrome.tabs.sendMessage(tab.id, { type: 'POST_TO_GROUP', text });
+    const apiBase = await getApiBase();
+    const mediaUrl = media?.mediaUrl ? new URL(media.mediaUrl, apiBase).href : '';
+    const res = await chrome.tabs.sendMessage(tab.id, {
+      type: 'POST_TO_GROUP',
+      text,
+      mediaType: media?.mediaType || 'TEXT',
+      mediaUrl,
+    });
 
     // Fecha apenas se foi uma aba criada pelo robô em loop
     if (isCreatedTab && isCampaignRunning) {
@@ -326,7 +343,15 @@ async function executeFullCampaign(msg, sendResponse) {
         console.log(`[PulsoSocial] Postando no grupo ${i + 1}/${targets.length}: ${item.group_name} (${item.group_id})`);
         
         try {
-          const res = await executePostForGroup(item.group_id, text, item.group_url, item.group_name);
+          let media = null;
+          try {
+            const urls = typeof activeCamp.media_urls === 'string'
+              ? JSON.parse(activeCamp.media_urls || '[]')
+              : (activeCamp.media_urls || []);
+            const rawMediaUrl = urls[0] || '';
+            media = { mediaType: activeCamp.media_type || 'TEXT', mediaUrl: rawMediaUrl ? new URL(rawMediaUrl, apiBase).href : '' };
+          } catch {}
+          const res = await executePostForGroup(item.group_id, text, item.group_url, item.group_name, media);
           
           await fetch(`${apiBase}/api/campaigns/${activeCamp.id}/item-result`, {
             method: 'POST',
@@ -524,7 +549,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === 'EXECUTE_POST') {
     (async () => {
-      const res = await executePostForGroup(msg.groupId, msg.text);
+      const res = await executePostForGroup(
+        msg.groupId,
+        msg.text,
+        msg.groupUrl || null,
+        msg.groupName || '',
+        { mediaType: msg.mediaType || 'TEXT', mediaUrl: msg.mediaUrl || '' }
+      );
       sendResponse(res);
     })();
     return true; // async
@@ -589,7 +620,13 @@ if (chrome.runtime.onMessageExternal) {
     }
     if (msg.type === 'EXECUTE_POST') {
       (async () => {
-        const res = await executePostForGroup(msg.groupId, msg.text);
+        const res = await executePostForGroup(
+          msg.groupId,
+          msg.text,
+          msg.groupUrl || null,
+          msg.groupName || '',
+          { mediaType: msg.mediaType || 'TEXT', mediaUrl: msg.mediaUrl || '' }
+        );
         sendResponse(res);
       })();
       return true; // async

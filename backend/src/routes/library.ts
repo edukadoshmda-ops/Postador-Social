@@ -170,16 +170,25 @@ libraryRouter.put('/:id', (req: Request, res: Response) => {
     const item = db.prepare('SELECT * FROM creative_library WHERE id = ?').get(id) as any;
     if (!item) return sendError(res, 'Item não encontrado', 404);
 
-    if (title !== undefined) item.title = title;
-    if (contentText !== undefined) item.content_text = contentText;
-    if (category !== undefined) item.category = category;
-    if (folderId !== undefined) item.folder_id = folderId;
+    const newTitle       = title       !== undefined ? title       : item.title;
+    const newContentText = contentText !== undefined ? contentText : item.content_text;
+    const newCategory    = category    !== undefined ? category    : item.category;
+    const newFolderId    = folderId    !== undefined ? folderId    : item.folder_id;
 
-    return sendSuccess(res, item, 'Item atualizado com sucesso');
+    // Executa o UPDATE real no banco
+    db.prepare(`
+      UPDATE creative_library
+      SET title = ?, content_text = ?, category = ?, folder_id = ?
+      WHERE id = ?
+    `).run(newTitle, newContentText, newCategory, newFolderId, id);
+
+    const updated = db.prepare('SELECT * FROM creative_library WHERE id = ?').get(id);
+    return sendSuccess(res, updated, 'Item atualizado com sucesso');
   } catch (error: any) {
     return sendError(res, error.message);
   }
 });
+
 
 // POST Spintax preview generator (com checagem anti-spam)
 libraryRouter.post('/spintax-preview', (req: Request, res: Response) => {

@@ -74,62 +74,18 @@ const INITIAL_DEMO_GROUPS = [
   { id: 'g_6', name: 'Emagrecer e Ser Fitness', member_count: 122009, is_admin: false, avatar: '🥗', url: 'https://www.facebook.com/groups/feed/', bg: 'bg-teal-950/60 text-teal-400 border border-teal-800/60' }
 ];
 
-const DEFAULT_PASTORES_CAMPAIGN: Campaign = {
-  id: 'camp_pastores_106',
-  name: 'PASTORES',
-  type: 'POSTER',
-  platform: 'FACEBOOK',
-  account_id: 'acc_demo',
-  content_text: 'Olá! Conteúdo especial para o Grupo de Pastores.',
-  spintax_enabled: true,
-  media_type: 'IMAGE',
-  status: 'PAUSED',
-  total_targets: 106,
-  completed_targets: 0,
-  successful_posts: 0,
-  pending_posts: 106,
-  failed_posts: 0,
-  progress_percent: 0,
-  current_target_name: 'Aguardando início',
-  created_at: new Date().toISOString()
-};
-
-const DEFAULT_DEMO_CAMPAIGN: Campaign = {
-  id: 'camp_demo_maes',
-  name: 'CAMPANHA GRUPO MÃES',
-  type: 'POSTER',
-  platform: 'FACEBOOK',
-  account_id: 'acc_demo',
-  content_text: 'Promoção Grupo Mães',
-  spintax_enabled: true,
-  media_type: 'IMAGE',
-  status: 'COMPLETED',
-  total_targets: 1,
-  completed_targets: 1,
-  successful_posts: 1,
-  pending_posts: 0,
-  failed_posts: 0,
-  progress_percent: 100,
-  current_target_name: 'Concluído: 1/1 postados.',
-  created_at: new Date().toISOString()
-};
-
 export default function PostadorPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryListId = searchParams.get('listId');
   const queryFolderId = searchParams.get('folderId');
 
-  const [campaigns, setCampaigns] = useState<Campaign[]>([DEFAULT_PASTORES_CAMPAIGN, DEFAULT_DEMO_CAMPAIGN]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [groupLists, setGroupLists] = useState<GroupList[]>([]);
   const [creatives, setCreatives] = useState<CreativeItem[]>([]);
-  const [folders, setFolders] = useState<LibraryFolder[]>([
-    { id: 'f_venda_sem_trafego', name: 'Venda sem tráfego pago', color: '#4F46E5', count: 6 },
-    { id: 'f_venda_carros', name: 'VENDA DE CARROS', color: '#EF4444', count: 6 },
-    { id: 'f_maes', name: 'GRUPO MÃES', color: '#EC4899', count: 6 }
-  ]);
+  const [folders, setFolders] = useState<LibraryFolder[]>([]);
 
   // Calibrator com Auto-Detecção Automática do Facebook
   const [calibratorOpen, setCalibratorOpen] = useState(false);
@@ -152,8 +108,8 @@ export default function PostadorPage() {
     }
   });
 
-  // Form: Nova Campanha (Exatamente igual ao print da imagem)
-  const [campaignName, setCampaignName] = useState('GRUPO DE ACHADINHOS DE M');
+  // Form: Nova Campanha
+  const [campaignName, setCampaignName] = useState('');
   const [postSourceMode, setPostSourceMode] = useState<'BIBLIOTECA' | 'UNICO'>('BIBLIOTECA');
   const [mediaFormats, setMediaFormats] = useState<{ text: boolean; image: boolean; video: boolean; intercalar: boolean }>({
     text: true,
@@ -162,8 +118,8 @@ export default function PostadorPage() {
     intercalar: false
   });
 
-  // Checkboxes de pastas selecionadas
-  const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set(['f_maes']));
+  // Checkboxes de pastas selecionadas (apenas pastas criadas na biblioteca)
+  const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set());
 
   // Intervalos de envio
   const [minInterval, setMinInterval] = useState(30);
@@ -268,10 +224,10 @@ export default function PostadorPage() {
         api.get('/groups/all'),
       ]);
 
-      if (campRes.status === 'fulfilled' && campRes.value.data.data?.length > 0) {
+      if (campRes.status === 'fulfilled' && Array.isArray(campRes.value.data.data)) {
         setCampaigns(campRes.value.data.data);
       } else {
-        setCampaigns([DEFAULT_DEMO_CAMPAIGN]);
+        setCampaigns([]);
       }
 
       if (accRes.status === 'fulfilled') {
@@ -297,12 +253,12 @@ export default function PostadorPage() {
 
       if (folderRes.status === 'fulfilled') {
         const fList = folderRes.value.data.data || [];
-        if (fList.length > 0) {
-          setFolders(fList);
-          if (queryFolderId && fList.some((f: any) => f.id === queryFolderId)) {
-            setSelectedFolderIds(new Set([queryFolderId]));
-          }
+        setFolders(fList);
+        if (queryFolderId && fList.some((f: any) => f.id === queryFolderId)) {
+          setSelectedFolderIds(new Set([queryFolderId]));
         }
+      } else {
+        setFolders([]);
       }
 
       if (grpRes.status === 'fulfilled' && grpRes.value.data.data?.length > 0) {
@@ -450,13 +406,17 @@ export default function PostadorPage() {
 
           // Comunica envio com a extensão/bridge se aberta
           try {
+            const mediaUrls = typeof camp.media_urls === 'string'
+              ? (() => { try { return JSON.parse(camp.media_urls); } catch { return []; } })()
+              : (camp.media_urls || []);
             window.postMessage({
               type: 'EXECUTE_POST',
               groupId: grp?.id,
               groupName: grpName,
               groupUrl: grpUrl,
               text: camp.content_text,
-              mediaType: camp.media_type
+              mediaType: camp.media_type,
+              mediaUrl: mediaUrls[0] || ''
             }, '*');
           } catch {}
 
@@ -589,17 +549,11 @@ export default function PostadorPage() {
       console.warn(err);
     }
     try {
+      // Notifica a extensão oficial para iniciar a campanha
       window.postMessage({
         type: 'PULSO_START_CAMPAIGN',
         campaign: activeC || { id, name: 'Campanha', status: 'RUNNING' }
       }, '*');
-      if (activeC?.content_text) {
-        window.postMessage({
-          type: 'EXECUTE_POST',
-          text: activeC.content_text,
-          groupId: activeC.id
-        }, '*');
-      }
     } catch {}
   };
 
@@ -1093,41 +1047,64 @@ export default function PostadorPage() {
               {getMediaSummaryText()}
             </p>
 
-            {/* Pasta(s) da biblioteca com checkboxes (Exatamente igual ao print) */}
+            {/* Pasta(s) da biblioteca com checkboxes */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-300">
-                Pasta(s) da biblioteca
-              </label>
-
-              <div className="space-y-2 bg-[#0b1021] p-3.5 rounded-2xl border border-slate-800">
-                {folders.map((folder) => {
-                  const isChecked = selectedFolderIds.has(folder.id);
-                  return (
-                    <label
-                      key={folder.id}
-                      className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-white/5 cursor-pointer select-none transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleFolderSelection(folder.id)}
-                        className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-[#5054d4] focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
-                      />
-                      <div
-                        className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 text-xs"
-                        style={{ color: folder.color }}
-                      >
-                        <Folder className="w-4 h-4 fill-current" />
-                      </div>
-                      <span className="text-xs font-semibold text-white uppercase truncate">
-                        {folder.name}
-                      </span>
-                    </label>
-                  );
-                })}
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Pasta(s) da biblioteca
+                </label>
+                <button
+                  type="button"
+                  onClick={() => navigate('/biblioteca')}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold underline cursor-pointer"
+                >
+                  Gerenciar na Biblioteca →
+                </button>
               </div>
 
-              {selectedFolderIds.size === 0 && (
+              {folders.length === 0 ? (
+                <div className="p-4 bg-[#0b1021] rounded-2xl border border-dashed border-slate-800 text-center space-y-2">
+                  <p className="text-xs text-slate-400">Nenhuma pasta encontrada na biblioteca.</p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/biblioteca')}
+                    className="px-3.5 py-1.5 bg-[#5054d4] hover:bg-[#4347c4] text-white text-xs font-semibold rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Folder className="w-3.5 h-3.5" />
+                    <span>Criar pasta na Biblioteca</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2 bg-[#0b1021] p-3.5 rounded-2xl border border-slate-800">
+                  {folders.map((folder) => {
+                    const isChecked = selectedFolderIds.has(folder.id);
+                    return (
+                      <label
+                        key={folder.id}
+                        className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-white/5 cursor-pointer select-none transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleFolderSelection(folder.id)}
+                          className="w-4 h-4 rounded bg-[#131c31] border-slate-700 text-[#5054d4] focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
+                        />
+                        <div
+                          className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 text-xs"
+                          style={{ color: folder.color || '#4F46E5' }}
+                        >
+                          <Folder className="w-4 h-4 fill-current" />
+                        </div>
+                        <span className="text-xs font-semibold text-white uppercase truncate">
+                          {folder.name}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              {folders.length > 0 && selectedFolderIds.size === 0 && (
                 <p className="text-xs text-rose-400 pt-0.5">
                   Escolha pelo menos 1 pasta da biblioteca antes de continuar.
                 </p>
