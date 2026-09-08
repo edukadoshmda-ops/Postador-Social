@@ -101,7 +101,15 @@ campaignsRouter.post('/', (req: Request, res: Response) => {
     } = req.body;
 
     const firstAcc = db.prepare('SELECT id FROM accounts LIMIT 1').get() as any;
-    const effectiveAccountId = accountId || firstAcc?.id || 'acc_default';
+    const demoAccountId = 'acc_demo_fb';
+    const existingDemoAccount = db.prepare('SELECT id FROM accounts WHERE id = ?').get(demoAccountId) as any;
+    if (!firstAcc && !existingDemoAccount) {
+      db.prepare(`
+        INSERT INTO accounts (id, platform, name, identifier, cookies, session_data, proxy, user_agent)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(demoAccountId, 'FACEBOOK', 'Conta Demo', 'demo_fb_user', 'c_user=100000000000000; xs=demo_xs;', null, null, null);
+    }
+    const effectiveAccountId = accountId || firstAcc?.id || existingDemoAccount?.id || demoAccountId;
     const effectiveContent = contentText || name || 'Publicação automática';
 
     if (!name) {

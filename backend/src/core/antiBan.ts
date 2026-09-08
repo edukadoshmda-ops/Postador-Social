@@ -131,7 +131,26 @@ export function recordPostResult(accountId: string, success: boolean) {
 
 export function detectMetaBlock(errorMsg: string): boolean {
   const msg = (errorMsg || '').toLowerCase();
-  return msg.includes('bloquead') || msg.includes('checkpoint') || msg.includes('temporariamente') || msg.includes('limite') || msg.includes('spam') || msg.includes('190') || msg.includes('368');
+
+  const explicitBlockSignals = [
+    'checkpoint',
+    'captcha',
+    'verificação de segurança',
+    'confirme sua identidade',
+    'conta temporariamente bloqueada',
+    'temporariamente bloqueado',
+    'bloqueio detectado',
+    'ação bloqueada',
+    'spam',
+    'spam detectado',
+    'sua conta foi bloqueada',
+    'bloqueio da conta',
+  ];
+
+  const isExplicit = explicitBlockSignals.some((signal) => msg.includes(signal));
+  const isNumericMetaCode = msg.includes('190') || msg.includes('368');
+
+  return isExplicit || isNumericMetaCode;
 }
 
 export function getRemainingThisHour(accountId: string): number {

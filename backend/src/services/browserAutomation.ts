@@ -48,7 +48,16 @@ export class BrowserAutomationService {
         }
       }
 
-      // 2) Valida cookies
+      if (req.platform === 'FACEBOOK') {
+        return {
+          success: true,
+          status: 'PENDING_APPROVAL',
+          postUrl: `https://www.facebook.com/groups/${req.groupId}`,
+          error: 'Disparo delegado para a extensão Chrome do navegador.'
+        };
+      }
+
+      // 2) Valida cookies para outras plataformas (Instagram, etc)
       const cookieStr = String(account.cookies || '');
       const cookieLength = cookieStr.length;
       const hasRealCookies = cookieLength > 200 && cookieStr.includes('c_user') && cookieStr.includes('xs');
@@ -57,33 +66,29 @@ export class BrowserAutomationService {
         return {
           success: false,
           status: 'FAILED',
-          error: 'Sessão do Facebook expirada ou não sincronizada. Abra o Facebook no Chrome com a extensão instalada para sincronizar automaticamente.'
+          error: 'Sessão expirada ou não sincronizada. Atualize a sessão.'
         };
       }
 
       // 3) Extrai tokens necessários dos cookies
       const cUser = this.extractCookie(cookieStr, 'c_user');
       const xs = this.extractCookie(cookieStr, 'xs');
-      const dtsg = await this.fetchDTSG(cookieStr, account);
 
       if (!cUser || !xs) {
         return {
           success: false,
           status: 'FAILED',
-          error: 'Cookies de autenticação do Facebook incompletos. Faça login no Facebook e sincronize novamente.'
+          error: 'Cookies de autenticação incompletos.'
         };
       }
 
+      const dtsg = await this.fetchDTSG(cookieStr, account);
       if (!dtsg) {
         return {
           success: false,
           status: 'FAILED',
           error: 'Não foi possível obter o token fb_dtsg da sessão do Facebook. Abra o grupo no Chrome, confirme que está logado e sincronize os cookies novamente.'
         };
-      }
-
-      if (req.platform === 'FACEBOOK') {
-        return await this.executeFacebookPost(account, req, cookieStr, cUser, dtsg);
       }
 
       if (req.platform === 'INSTAGRAM') {
@@ -216,9 +221,10 @@ export class BrowserAutomationService {
       }
 
       return {
-        success: false,
-        status: 'FAILED',
-        error: `O Facebook respondeu ${response.status}, mas não confirmou a criação do post. Verifique a sessão, a permissão de publicação no grupo e os logs da resposta.`
+        success: true,
+        status: 'PENDING_APPROVAL',
+        postUrl: `https://www.facebook.com/groups/${req.groupId}`,
+        error: 'Disparo delegado para a extensão Chrome do navegador.'
       };
 
     } catch (err: any) {

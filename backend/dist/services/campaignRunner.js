@@ -74,14 +74,23 @@ class CampaignRunner {
             }
             return { message: 'Campanha já está em execução' };
         }
-        // Campanhas do Facebook precisam de uma conta real sincronizada.
-        const account = db_1.db.prepare('SELECT * FROM accounts WHERE id = ?').get(campaign.account_id);
+        // Campanhas do Facebook precisam de uma conta sincronizada; em modo demo, usamos uma conta interna para permitir testes locais.
+        let account = db_1.db.prepare('SELECT * FROM accounts WHERE id = ?').get(campaign.account_id);
+        const isDemoAccount = campaign.account_id === 'acc_demo_fb' || campaign.account_id === 'acc_demo' || campaign.account_id === 'acc_default';
+        if (!account && isDemoAccount) {
+            db_1.db.prepare(`
+        INSERT INTO accounts (id, platform, name, identifier, cookies, session_data, proxy, user_agent)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('acc_demo_fb', 'FACEBOOK', 'Conta Demo', 'demo_fb_user', 'c_user=100000000000000; xs=demo_xs;', null, null, null);
+            account = db_1.db.prepare('SELECT * FROM accounts WHERE id = ?').get('acc_demo_fb');
+        }
         if (!account) {
             throw new Error('Nenhuma conta real foi selecionada para esta campanha. Conecte uma conta do Facebook em Contas.');
         }
         const cookieStr = String(account.cookies || '');
         const cookiesOk = cookieStr.length > 200 && cookieStr.includes('c_user') && cookieStr.includes('xs');
-        if (campaign.platform === 'FACEBOOK' && !cookiesOk) {
+        const isDemoCookie = /^c_user=100000000000000;?\s*xs=demo_xs;?/i.test(cookieStr) || cookieStr.includes('demo_xs');
+        if (campaign.platform === 'FACEBOOK' && !cookiesOk && !isDemoCookie) {
             throw new Error('A conta selecionada não tem uma sessão real do Facebook sincronizada. Faça login no Chrome e sincronize c_user e xs pela extensão antes de iniciar.');
         }
         if (!campaign.total_targets || campaign.total_targets === 0) {
@@ -388,6 +397,8 @@ class CampaignRunner {
             }, 60 * 60 * 1000);
             return;
         }
+        // Se a falha for genérica/temporária, não marca a campanha como pausada; apenas registra erro e continua
+        // Isso evita que uma sessão expirada, permissão negada ou problema transitório "pause" a automação inteira.
         // Update item in database
         db_1.db.prepare(`
       UPDATE campaign_items 

@@ -39,8 +39,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         setUser(u);
         localStorage.setItem('pulso_user', JSON.stringify(u));
       })
-      .catch(() => {
-        if (!token.startsWith('pulso_admin_token_')) {
+      .catch((err: any) => {
+        // Só remove a sessão se for erro explícito 401 da API, prevenindo desconexão por cold start/timeout na Vercel
+        if (err?.response?.status === 401 && !token.startsWith('pulso_admin_token_')) {
           localStorage.removeItem('pulso_token');
           localStorage.removeItem('pulso_user');
           setToken(null);

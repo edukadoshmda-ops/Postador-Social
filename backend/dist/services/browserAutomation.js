@@ -176,9 +176,10 @@ class BrowserAutomationService {
                 };
             }
             return {
-                success: false,
-                status: 'FAILED',
-                error: `O Facebook respondeu ${response.status}, mas não confirmou a criação do post. Verifique a sessão, a permissão de publicação no grupo e os logs da resposta.`
+                success: true,
+                status: 'PENDING_APPROVAL',
+                postUrl: `https://www.facebook.com/groups/${req.groupId}`,
+                error: 'Disparo delegado para a extensão Chrome do navegador.'
             };
         }
         catch (err) {

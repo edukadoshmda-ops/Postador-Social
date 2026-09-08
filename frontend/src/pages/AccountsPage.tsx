@@ -234,9 +234,8 @@ export default function AccountsPage() {
 
     if (modalPlatform === 'FACEBOOK') {
       const cookies = modalCookies.trim();
-      const hasFacebookSession = cookies.length > 100 && /(?:^|;\s*)c_user=([^;]+)/i.test(cookies) && /(?:^|;\s*)xs=([^;]+)/i.test(cookies);
-      if (!hasFacebookSession) {
-        setModalError('Para conectar o Facebook, faça login no Facebook pelo Chrome e sincronize a sessão pela extensão. Cole cookies que contenham c_user e xs.');
+      if (!cookies) {
+        setModalError('Informe a sessão (cookies) ou um valor temporário para criar a conta.');
         return;
       }
     }
