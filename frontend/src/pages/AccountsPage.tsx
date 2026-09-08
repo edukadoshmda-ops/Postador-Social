@@ -232,9 +232,18 @@ export default function AccountsPage() {
       return;
     }
 
+    if (modalPlatform === 'FACEBOOK') {
+      const cookies = modalCookies.trim();
+      const hasFacebookSession = cookies.length > 100 && /(?:^|;\s*)c_user=([^;]+)/i.test(cookies) && /(?:^|;\s*)xs=([^;]+)/i.test(cookies);
+      if (!hasFacebookSession) {
+        setModalError('Para conectar o Facebook, faça login no Facebook pelo Chrome e sincronize a sessão pela extensão. Cole cookies que contenham c_user e xs.');
+        return;
+      }
+    }
+
     setModalSubmitting(true);
     try {
-      // Sanitiza proxy: se o usuário colocou facebook.com no proxy, desconsidera silenciosamente
+      // Uma URL do Facebook não é proxy; descarta para não enviar configuração inválida.
       let cleanProxy = modalProxy.trim();
       if (cleanProxy.includes('facebook.com') || cleanProxy.includes('instagram.com')) {
         cleanProxy = '';
@@ -261,7 +270,9 @@ export default function AccountsPage() {
       const formatted =
         typeof rawError === 'object'
           ? rawError.message || JSON.stringify(rawError)
-          : String(rawError || 'Erro ao conectar conta. Verifique os dados informados.');
+          : String(rawError || (err.request
+            ? 'Não foi possível acessar o servidor local. Confirme que o backend está rodando na porta 3001.'
+            : 'Erro ao conectar conta. Verifique os dados informados.'));
       setModalError(formatted);
     } finally {
       setModalSubmitting(false);
@@ -1026,7 +1037,7 @@ export default function AccountsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Cookies / Sessão (Opcional — modo simulação)
+                  Cookies / Sessão do Facebook *
                 </label>
                 <textarea
                   rows={2}
@@ -1048,8 +1059,8 @@ export default function AccountsPage() {
                   placeholder="http://usuario:senha@ip:porta"
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-[#131c31] border border-slate-200 dark:border-[#1e293b] rounded-xl text-slate-800 dark:text-white text-xs font-mono focus:outline-none focus:border-indigo-500"
                 />
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                  Apenas para proxy de IP dedicado. Deixe em branco se for usar sua conexão normal.
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                  Deixe em branco para usar sua conexão normal. URL do Facebook não é proxy.
                 </p>
               </div>
 

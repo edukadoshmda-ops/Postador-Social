@@ -202,6 +202,14 @@ accountsRouter.post('/', (req: Request, res: Response) => {
     if (!name) {
       return sendError(res, 'Nome de identificação é obrigatório', 400);
     }
+
+    if (platform === 'FACEBOOK') {
+      const cookieStr = String(cookies || '').trim();
+      const hasSession = cookieStr.length > 100 && /(?:^|;\s*)c_user=([^;]+)/i.test(cookieStr) && /(?:^|;\s*)xs=([^;]+)/i.test(cookieStr);
+      if (!hasSession) {
+        return sendError(res, 'Sessão do Facebook ausente ou incompleta. Faça login no Chrome e sincronize os cookies pela extensão; são necessários c_user e xs.', 400);
+      }
+    }
     
     // Sanitiza e extrai identificador se colado como URL
     const cleanId = cleanIdentifier(identifier, platform, cookies);
