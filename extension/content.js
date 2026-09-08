@@ -374,6 +374,8 @@ async function executePostInCurrentTab(text) {
       const primarySelectors = [
         'div[data-pagelet="GroupInlineComposer"] div[role="button"]',
         'div[data-pagelet="GroupInlineComposer"]',
+        'div[data-pagelet="FeedInlineComposer"] div[role="button"]',
+        'div[data-pagelet="FeedInlineComposer"]',
         'div[data-pagelet*="Composer"] div[role="button"]',
         'div[aria-label*="No que você está pensando" i]',
         'div[aria-label*="Escreva algo" i]',

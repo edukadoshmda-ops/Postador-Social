@@ -198,10 +198,22 @@ function stopAllPosting() {
   }
 }
 
-async function executePostForGroup(groupId, text) {
+async function executePostForGroup(groupId, text, groupUrl = null, groupName = '') {
   let tab = null;
   try {
-    const url = `https://www.facebook.com/groups/${groupId}`;
+    let url = 'https://www.facebook.com/groups/feed/';
+    const rawId = String(groupId || '').trim();
+    const rawUrl = String(groupUrl || '').trim();
+
+    if (/^\d{5,}$/.test(rawId)) {
+      url = `https://www.facebook.com/groups/${rawId}`;
+    } else if (rawUrl.startsWith('http') && !rawUrl.includes('/groups/search/') && !rawUrl.includes('pastores_') && !rawUrl.includes('espacodepastores')) {
+      url = rawUrl;
+    } else if (rawId.startsWith('http') && !rawId.includes('/groups/search/')) {
+      url = rawId;
+    } else if (String(groupName || rawId).toLowerCase().includes('pastor')) {
+      url = 'https://www.facebook.com/groups/950669311656569';
+    }
     tab = await chrome.tabs.create({ url, active: true });
     currentActiveTabId = tab.id;
     await waitForTabToLoad(tab.id, 9000);
@@ -292,7 +304,7 @@ async function executeFullCampaign(msg, sendResponse) {
         console.log(`[PulsoSocial] Postando no grupo ${i + 1}/${targets.length}: ${item.group_name} (${item.group_id})`);
         
         try {
-          const res = await executePostForGroup(item.group_id, text);
+          const res = await executePostForGroup(item.group_id, text, item.group_url, item.group_name);
           
           await fetch(`${apiBase}/api/campaigns/${activeCamp.id}/item-result`, {
             method: 'POST',

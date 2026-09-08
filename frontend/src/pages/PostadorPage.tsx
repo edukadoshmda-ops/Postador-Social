@@ -46,18 +46,32 @@ import {
 import { api, Campaign, Account, GroupList, CreativeItem, LibraryFolder } from '../core/apiService';
 import CalibratorModal from '../components/CalibratorModal';
 
+export const getSafeGroupUrl = (g?: { url?: string; name?: string; id?: string }) => {
+  if (!g) return 'https://www.facebook.com/groups/feed/';
+  if (g.url && (g.url.includes('/groups/search/') || /\/groups\/\d{5,}/.test(g.url))) {
+    return g.url;
+  }
+  if (g.id && /^\d{5,}$/.test(g.id)) {
+    return `https://www.facebook.com/groups/${g.id}`;
+  }
+  if (g.name) {
+    return `https://www.facebook.com/groups/search/groups/?q=${encodeURIComponent(g.name)}`;
+  }
+  return 'https://www.facebook.com/groups/feed/';
+};
+
 const INITIAL_DEMO_GROUPS = [
-  { id: 'g_p1', name: 'Espaço de Pastores e Ajuda Mútua', member_count: 64832, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/espacodepastores', bg: 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/60' },
-  { id: 'g_p2', name: 'Clube de Pastores Oficial Brasil', member_count: 64684, is_admin: false, avatar: '🥗', url: 'https://www.facebook.com/groups/clubedepastores', bg: 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60' },
-  { id: 'g_p3', name: 'Canal de Pastores Unidos e Fortes', member_count: 63959, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/canaldepastores', bg: 'bg-amber-950/60 text-amber-400 border border-amber-800/60' },
-  { id: 'g_p4', name: 'Grupo de Pastores Trocas de Ideias', member_count: 62744, is_admin: false, avatar: '👥', url: 'https://www.facebook.com/groups/grupodepastores', bg: 'bg-blue-950/60 text-blue-400 border border-blue-800/60' },
-  { id: 'g_p5', name: 'Comunidade de Pastores Unidos e Fortes', member_count: 62396, is_admin: false, avatar: '🕷️', url: 'https://www.facebook.com/groups/comunidadedepastores', bg: 'bg-rose-950/60 text-rose-400 border border-rose-800/60' },
-  { id: 'g_1', name: 'SPIDER-VERSE', member_count: 396750, is_admin: false, avatar: '🕷️', url: 'https://www.facebook.com/groups/spiderverse', bg: 'bg-red-950/60 text-red-400 border border-red-800/60' },
-  { id: 'g_2', name: 'Cassinos e slots confiaveis', member_count: 384390, is_admin: true, avatar: '🎰', url: 'https://www.facebook.com/groups/slotsbrasil', bg: 'bg-amber-950/60 text-amber-400 border border-amber-800/60' },
-  { id: 'g_3', name: 'Clash Royale (Brasil)', member_count: 308382, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/clashroyale', bg: 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/60' },
-  { id: 'g_4', name: 'ENQUANTO ISSO PELO BRASIL', member_count: 173532, is_admin: false, avatar: '🇧🇷', url: 'https://www.facebook.com/groups/enquantoissopelobrasil', bg: 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60' },
-  { id: 'g_5', name: 'La Casa de Papel Brasil', member_count: 134291, is_admin: true, avatar: '🎭', url: 'https://www.facebook.com/groups/lacasadepapel', bg: 'bg-rose-950/60 text-rose-400 border border-rose-800/60' },
-  { id: 'g_6', name: 'Emagrecer e Ser Fitness', member_count: 122009, is_admin: false, avatar: '🥗', url: 'https://www.facebook.com/groups/emagrecerfitness', bg: 'bg-teal-950/60 text-teal-400 border border-teal-800/60' }
+  { id: '950669311656569', name: 'Conselho / Convenção de Pastores e Ministros', member_count: 64832, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/950669311656569', bg: 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/60' },
+  { id: '344143376757848', name: 'Pastor Cláudio Duarte frases', member_count: 64684, is_admin: false, avatar: '🥗', url: 'https://www.facebook.com/groups/344143376757848', bg: 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60' },
+  { id: 'g_p3', name: 'Canal de Pastores Unidos e Fortes', member_count: 63959, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/search/groups/?q=Canal%20de%20Pastores%20Unidos%20e%20Fortes', bg: 'bg-amber-950/60 text-amber-400 border border-amber-800/60' },
+  { id: 'g_p4', name: 'Grupo de Pastores Trocas de Ideias', member_count: 62744, is_admin: false, avatar: '👥', url: 'https://www.facebook.com/groups/search/groups/?q=Grupo%20de%20Pastores%20Trocas%20de%20Ideias', bg: 'bg-blue-950/60 text-blue-400 border border-blue-800/60' },
+  { id: 'g_p5', name: 'Comunidade de Pastores Unidos e Fortes', member_count: 62396, is_admin: false, avatar: '🕷️', url: 'https://www.facebook.com/groups/search/groups/?q=Comunidade%20de%20Pastores%20Unidos%20e%20Fortes', bg: 'bg-rose-950/60 text-rose-400 border border-rose-800/60' },
+  { id: 'g_1', name: 'SPIDER-VERSE', member_count: 396750, is_admin: false, avatar: '🕷️', url: 'https://www.facebook.com/groups/feed/', bg: 'bg-red-950/60 text-red-400 border border-red-800/60' },
+  { id: 'g_2', name: 'Cassinos e slots confiaveis', member_count: 384390, is_admin: true, avatar: '🎰', url: 'https://www.facebook.com/groups/feed/', bg: 'bg-amber-950/60 text-amber-400 border border-amber-800/60' },
+  { id: 'g_3', name: 'Clash Royale (Brasil)', member_count: 308382, is_admin: false, avatar: '👑', url: 'https://www.facebook.com/groups/feed/', bg: 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/60' },
+  { id: 'g_4', name: 'ENQUANTO ISSO PELO BRASIL', member_count: 173532, is_admin: false, avatar: '🇧🇷', url: 'https://www.facebook.com/groups/feed/', bg: 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60' },
+  { id: 'g_5', name: 'La Casa de Papel Brasil', member_count: 134291, is_admin: true, avatar: '🎭', url: 'https://www.facebook.com/groups/feed/', bg: 'bg-rose-950/60 text-rose-400 border border-rose-800/60' },
+  { id: 'g_6', name: 'Emagrecer e Ser Fitness', member_count: 122009, is_admin: false, avatar: '🥗', url: 'https://www.facebook.com/groups/feed/', bg: 'bg-teal-950/60 text-teal-400 border border-teal-800/60' }
 ];
 
 const DEFAULT_PASTORES_CAMPAIGN: Campaign = {
@@ -1407,7 +1421,7 @@ export default function PostadorPage() {
                               {Number(g.member_count).toLocaleString('pt-BR')}
                             </span>
                             <a
-                              href={g.url || 'https://www.facebook.com/groups'}
+                              href={getSafeGroupUrl(g)}
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
@@ -1632,14 +1646,15 @@ export default function PostadorPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        let targetUrl = 'https://www.facebook.com/groups/espacodepastores/';
-                        const matchedGroup = INITIAL_DEMO_GROUPS.find(g => 
+                        let targetUrl = 'https://www.facebook.com/groups/feed/';
+                        const matchedGroup = allGroups.find(g => 
                           (c.current_target_name && g.name.toLowerCase().includes(c.current_target_name.toLowerCase())) ||
-                          (c.name && g.name.toLowerCase().includes(c.name.toLowerCase())) ||
-                          (c.name?.toUpperCase().includes('PASTOR') && g.name.includes('Pastores'))
-                        );
-                        if (matchedGroup?.url) {
-                          targetUrl = matchedGroup.url;
+                          (c.name && g.name.toLowerCase().includes(c.name.toLowerCase()))
+                        ) || INITIAL_DEMO_GROUPS.find(g =>
+                          c.name?.toUpperCase().includes('PASTOR') && (g.name.includes('Pastor') || g.name.includes('Pastores'))
+                        ) || INITIAL_DEMO_GROUPS[0];
+                        if (matchedGroup) {
+                          targetUrl = getSafeGroupUrl(matchedGroup);
                         } else if (c.current_target_name?.startsWith('http')) {
                           targetUrl = c.current_target_name;
                         }
