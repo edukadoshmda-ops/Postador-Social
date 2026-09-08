@@ -579,6 +579,7 @@ export default function PostadorPage() {
   };
 
   const handleStart = async (id: string) => {
+    const activeC = campaigns.find((c) => c.id === id);
     setCampaigns((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status: 'RUNNING', current_target_name: 'Iniciando disparos nos grupos...' } : c))
     );
@@ -587,6 +588,19 @@ export default function PostadorPage() {
     } catch (err) {
       console.warn(err);
     }
+    try {
+      window.postMessage({
+        type: 'PULSO_START_CAMPAIGN',
+        campaign: activeC || { id, name: 'Campanha', status: 'RUNNING' }
+      }, '*');
+      if (activeC?.content_text) {
+        window.postMessage({
+          type: 'EXECUTE_POST',
+          text: activeC.content_text,
+          groupId: activeC.id
+        }, '*');
+      }
+    } catch {}
   };
 
   const handlePause = async (id: string) => {

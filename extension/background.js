@@ -200,6 +200,7 @@ function stopAllPosting() {
 
 async function executePostForGroup(groupId, text, groupUrl = null, groupName = '') {
   let tab = null;
+  let isCreatedTab = false;
   try {
     let url = 'https://www.facebook.com/groups/feed/';
     const rawId = String(groupId || '').trim();
@@ -214,30 +215,51 @@ async function executePostForGroup(groupId, text, groupUrl = null, groupName = '
     } else if (String(groupName || rawId).toLowerCase().includes('pastor')) {
       url = 'https://www.facebook.com/groups/950669311656569';
     }
-    tab = await chrome.tabs.create({ url, active: true });
-    currentActiveTabId = tab.id;
-    await waitForTabToLoad(tab.id, 9000);
+
+    // Salva o último texto disparado para uso no helper flutuante
+    if (text) {
+      try { await chrome.storage.local.set({ pulso_last_campaign_text: text }); } catch {}
+    }
+
+    // Checa se o usuário já tem uma aba do Facebook com grupo aberta
+    const allTabs = await chrome.tabs.query({ url: ['https://*.facebook.com/groups/*'] });
+    const activeTab = allTabs.find(t => t.active) || allTabs[0];
+
+    if (activeTab && activeTab.id) {
+      tab = activeTab;
+      isCreatedTab = false;
+      // Se a aba já é um grupo ou o feed, foca nela
+      await chrome.tabs.update(tab.id, { active: true });
+      await new Promise(r => setTimeout(r, 600));
+    } else {
+      tab = await chrome.tabs.create({ url, active: true });
+      isCreatedTab = true;
+      currentActiveTabId = tab.id;
+      await waitForTabToLoad(tab.id, 9000);
+    }
 
     if (shouldAbortCampaign || !isCampaignRunning) {
-      if (tab && tab.id) chrome.tabs.remove(tab.id).catch(() => {});
+      if (isCreatedTab && tab && tab.id) chrome.tabs.remove(tab.id).catch(() => {});
       return { ok: false, error: 'Cancelado pelo usuário' };
     }
 
     await ensureContentScriptInjected(tab.id);
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 1200));
 
     const res = await chrome.tabs.sendMessage(tab.id, { type: 'POST_TO_GROUP', text });
 
-    // FECHA A ABA AUTOMATICAMENTE APÓS POSTAR (3 segundos de segurança)
-    await new Promise(r => setTimeout(r, 3000));
-    if (tab && tab.id) {
-      try { await chrome.tabs.remove(tab.id); } catch {}
-      currentActiveTabId = null;
+    // Fecha apenas se foi uma aba criada pelo robô em loop
+    if (isCreatedTab && isCampaignRunning) {
+      await new Promise(r => setTimeout(r, 3000));
+      if (tab && tab.id) {
+        try { await chrome.tabs.remove(tab.id); } catch {}
+        currentActiveTabId = null;
+      }
     }
 
     return res || { ok: false, error: 'Sem resposta da aba' };
   } catch (err) {
-    if (tab && tab.id) {
+    if (isCreatedTab && tab && tab.id) {
       try { await chrome.tabs.remove(tab.id); } catch {}
       currentActiveTabId = null;
     }

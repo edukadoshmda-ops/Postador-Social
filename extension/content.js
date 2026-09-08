@@ -345,20 +345,9 @@ async function executePostInCurrentTab(text) {
 
     showVisualBanner('⚡ <b>Pulso Social</b>: Localizando caixa de publicação no Facebook...', '#4f46e5');
 
-    // Faz rolagem suave para baixo para forçar o Facebook a carregar o composer abaixo da capa
-    window.scrollBy({ top: 350, behavior: 'smooth' });
-    await sleep(800);
-
-    // Checa se o usuário NÃO é membro deste grupo
-    const joinBtn = Array.from(document.querySelectorAll('div[role="button"], button')).find(b => {
-      const t = (b.innerText || b.getAttribute('aria-label') || '').toLowerCase().trim();
-      return t === 'participar do grupo' || t === 'pedir para participar' || t === 'entrar no grupo' || t === 'join group';
-    });
-    if (joinBtn) {
-      showVisualBanner('⚠️ Você não é membro deste grupo. Pulando para o próximo...', '#f59e0b');
-      removeVisualBanner(5000);
-      return { ok: false, error: 'Não é membro deste grupo (necessário entrar no grupo primeiro)' };
-    }
+    // Faz rolagem suave para baixo para forçar o Facebook a carregar o composer
+    window.scrollBy({ top: 250, behavior: 'smooth' });
+    await sleep(600);
 
     // Passo 1: Espera até 15 segundos pelo gatilho de postagem na página do grupo
     let trigger = null;
@@ -366,7 +355,8 @@ async function executePostInCurrentTab(text) {
       const s = (str || '').toLowerCase();
       return s.includes('coment') || s.includes('responder') || s.includes('reply') ||
              s.includes('compartilhar') || s.includes('share') || s.includes('pesquisar') ||
-             s.includes('busca') || s.includes('search') || s.includes('curtir') || s.includes('like');
+             s.includes('busca') || s.includes('search') || s.includes('curtir') || s.includes('like') ||
+             s.includes('anônimo') || s.includes('sentimento') || s.includes('enquete');
     };
 
     for (let attempt = 0; attempt < 28; attempt++) {
@@ -377,6 +367,7 @@ async function executePostInCurrentTab(text) {
         'div[data-pagelet="FeedInlineComposer"] div[role="button"]',
         'div[data-pagelet="FeedInlineComposer"]',
         'div[data-pagelet*="Composer"] div[role="button"]',
+        'div[data-pagelet*="Composer"]',
         'div[aria-label*="No que você está pensando" i]',
         'div[aria-label*="Escreva algo" i]',
         'div[aria-label*="Crie uma publicação" i]',
@@ -390,7 +381,7 @@ async function executePostInCurrentTab(text) {
           const t = (el.innerText || el.getAttribute('aria-label') || '').trim();
           if (isExcluded(t)) continue;
           const rect = el.getBoundingClientRect();
-          if (rect.width > 20 && rect.height > 15) {
+          if (rect.width > 30 && rect.height > 15) {
             trigger = el;
             break;
           }
@@ -398,24 +389,23 @@ async function executePostInCurrentTab(text) {
         if (trigger) break;
       }
 
-      // 1.2) Fallback por texto visível específico
+      // 1.2) Fallback inteligente: procura especificamente pelo texto "Escreva algo" ou similar
       if (!trigger) {
-        const candidates = Array.from(document.querySelectorAll('div[role="button"], span, h2, h3, div[tabindex="0"]'));
-        for (const el of candidates) {
-          const t = (el.innerText || el.getAttribute('aria-label') || '').trim().toLowerCase();
+        const allTextEls = Array.from(document.querySelectorAll('span, div, p, [role="button"]'));
+        for (const el of allTextEls) {
+          if (el.children.length > 3) continue;
+          const t = (el.innerText || el.textContent || el.getAttribute('aria-label') || '').trim().toLowerCase();
           if (isExcluded(t)) continue;
           if (
-            t === 'escreva algo...' ||
-            t === 'escreva algo' ||
+            t.includes('escreva algo') ||
             t.includes('no que você está pensando') ||
-            t.includes('crie uma publicação pública') ||
             t.includes('crie uma publicação') ||
-            t.includes('write something') ||
-            t.includes('create a public post')
+            t.includes('create a public post') ||
+            t.includes('write something')
           ) {
-            const clickable = el.closest('div[role="button"]') || el;
+            const clickable = el.closest('div[role="button"]') || el.closest('div[tabindex="0"]') || el.closest('div[data-pagelet*="Composer"]') || el.parentElement || el;
             const rect = clickable.getBoundingClientRect();
-            if (rect.width > 20 && rect.height > 15) {
+            if (rect.width > 30 && rect.height > 15) {
               trigger = clickable;
               break;
             }
@@ -424,25 +414,42 @@ async function executePostInCurrentTab(text) {
       }
 
       if (trigger) break;
-      if (attempt === 8) {
-        window.scrollBy({ top: 400, behavior: 'smooth' });
+      if (attempt === 5 || attempt === 12) {
+        window.scrollBy({ top: 300, behavior: 'smooth' });
       }
       await sleep(500);
     }
 
     if (!trigger) {
-      showVisualBanner('❌ Não foi possível encontrar a caixa de postagem. Verifique se você é membro.', '#ef4444');
+      // Checa se usuário realmente não é membro
+      const headerJoinBtn = document.querySelector('div[data-pagelet*="GroupHeader"] [role="button"]');
+      const headerText = (headerJoinBtn?.innerText || '').toLowerCase();
+      if (headerText.includes('participar') || headerText.includes('entrar')) {
+        showVisualBanner('⚠️ Você não é membro deste grupo. Solicite entrada no grupo primeiro.', '#f59e0b');
+        removeVisualBanner(5000);
+        return { ok: false, error: 'Não é membro deste grupo' };
+      }
+
+      showVisualBanner('❌ Não foi possível encontrar a caixa "Escreva algo...". Tentando clique de reforço...', '#ef4444');
       removeVisualBanner(5000);
-      throw new Error('Campo de postagem não encontrado. Verifique se a conta participa deste grupo.');
+      throw new Error('Campo "Escreva algo..." não encontrado na página.');
     }
 
-    // Passo 2: Clica para abrir o modal de postagem
+    // Passo 2: Clica para abrir o modal de postagem com disparos completos
     showVisualBanner('✍️ <b>Pulso Social</b>: Abrindo editor de postagem...', '#3b82f6');
-    trigger.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    await sleep(300);
-    trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    trigger.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+    trigger.scrollIntoView({ block: 'center', behavior: 'instant' });
+    await sleep(250);
+
+    const innerTarget = trigger.querySelector('span, div') || trigger;
+    const clickEvents = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
+    for (const ev of clickEvents) {
+      trigger.dispatchEvent(new MouseEvent(ev, { bubbles: true, cancelable: true, view: window }));
+      if (innerTarget !== trigger) {
+        innerTarget.dispatchEvent(new MouseEvent(ev, { bubbles: true, cancelable: true, view: window }));
+      }
+    }
     trigger.click();
+    if (innerTarget !== trigger) innerTarget.click();
     await sleep(1500);
 
     // Passo 3: Espera o editor abrir no modal
@@ -675,6 +682,59 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       console.warn('[PulsoSocial] Erro ao monitorar post manual:', err);
     }
   }, true);
+})();
+
+// =========================================================
+// BOTÃO FLUTUANTE EM GRUPOS DO FACEBOOK (PULSO SOCIAL)
+// Permite postar com 1 clique direto no grupo aberto
+// =========================================================
+(function setupFloatingGroupHelper() {
+  if (window.__pulsoFloaterSetup) return;
+  window.__pulsoFloaterSetup = true;
+
+  function checkAndInjectFloater() {
+    if (!location.href.includes('/groups/')) return;
+    if (document.getElementById('__pulso_floater')) return;
+
+    const floater = document.createElement('div');
+    floater.id = '__pulso_floater';
+    floater.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:999999;background:linear-gradient(135deg,#1e1b4b,#312e81);border:2px solid #818cf8;border-radius:16px;padding:10px 16px;box-shadow:0 12px 36px rgba(0,0,0,0.6);display:flex;align-items:center;gap:12px;font-family:system-ui,-apple-system,sans-serif;color:#fff;animation:fadeIn 0.3s ease;';
+    floater.innerHTML = `
+      <div style="font-size:20px;line-height:1;">⚡</div>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:#c7d2fe;line-height:1.2;">Pulso Social PRO</div>
+        <div style="font-size:11px;color:#94a3b8;line-height:1.2;">Grupo pronto para postagem</div>
+      </div>
+      <button id="__pulso_floater_btn" style="background:#4f46e5;hover:background:#4338ca;color:#fff;border:none;padding:7px 16px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;box-shadow:0 4px 12px rgba(79,70,229,0.4);transition:all 0.2s;">
+        🚀 Postar Agora
+      </button>
+    `;
+    document.body.appendChild(floater);
+
+    const btn = document.getElementById('__pulso_floater_btn');
+    btn?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      btn.disabled = true;
+      btn.innerText = 'Postando...';
+      try {
+        let postText = 'Olá amigos do grupo!';
+        try {
+          const stored = await chrome.storage.local.get('pulso_last_campaign_text');
+          if (stored && stored.pulso_last_campaign_text) {
+            postText = stored.pulso_last_campaign_text;
+          }
+        } catch {}
+        await executePostInCurrentTab(postText);
+      } catch (err) {
+        showVisualBanner('Erro ao postar: ' + (err?.message || err), '#ef4444');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 Postar Agora';
+      }
+    });
+  }
+
+  setInterval(checkAndInjectFloater, 2000);
 })();
 
 try {

@@ -77,7 +77,10 @@
 
     // 3) Início de campanha completa
     if (data.type === 'PULSO_START_CAMPAIGN' || data.type === 'START_FULL_CAMPAIGN') {
-      try {
+        const campText = data.campaign?.content_text || data.payload?.campaign?.content_text || data.text;
+        if (campText) {
+          try { chrome.storage.local.set({ pulso_last_campaign_text: campText }); } catch {}
+        }
         if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
           chrome.runtime.sendMessage({
             type: 'START_FULL_CAMPAIGN',
@@ -94,6 +97,22 @@
       } catch (e) {
         window.postMessage({ type: 'PULSO_START_CAMPAIGN_RESPONSE', ok: false, error: String(e?.message || e) }, '*');
       }
+      return;
+    }
+
+    // 3.1) Disparo de post direto
+    if (data.type === 'EXECUTE_POST') {
+      try {
+        if (data.text) {
+          try { chrome.storage.local.set({ pulso_last_campaign_text: data.text }); } catch {}
+        }
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+          chrome.runtime.sendMessage({
+            type: 'EXECUTE_POST',
+            ...data
+          });
+        }
+      } catch (e) {}
       return;
     }
 
